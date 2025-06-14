@@ -59,10 +59,15 @@ if (strtoupper($response) === 'Y') {
         }
     }
 
-    // Reset the migrations (only if you really want to drop all tables and re-run)
+    // Reset migrations
     echo "Resetting migrations...\n";
     Artisan::call('migrate:reset');
     echo "Migrations have been reset.\n";
+
+    // **Run migrate after reset** to reapply all migrations
+    echo "Running migrations...\n";
+    Artisan::call('migrate');
+    echo "Migrations have been successfully reapplied.\n";
 
     // Proceed with Fortify installation
     echo "Proceeding with Fortify installation...\n";
