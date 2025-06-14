@@ -3,38 +3,62 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the suffixes for the migrations we need to check (for example)
-$requiredMigrationSuffixes = [
-    '_add_two_factor_columns_to_users_table',
-    '_create_users_table',
-    '_create_cache_table',
-    '_create_jobs_table',
+// Define the list of required migration files that should already exist in the database
+$requiredMigrations = [
+    'create_users_table.php',
+    'create_cache_table.php',
+    'create_jobs_table.php',
+    'add_two_factor_columns_to_users_table.php',
 ];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if all required migrations (based on suffixes) are already applied
-$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
-    foreach ($appliedMigrations as $migration) {
-        // Check if the migration ends with the required suffix
-        if (substr($migration, -strlen($suffix)) === $suffix) {
-            return false;  // Migration with the required suffix exists
-        }
-    }
-    return true;  // Migration with the required suffix is missing
-});
+// Check if all required migrations are already applied
+$missingMigrations = array_diff($requiredMigrations, $appliedMigrations);
 
-// If no migrations are missing, skip installation
 if (empty($missingMigrations)) {
-    echo "Required migrations have already been applied. Skipping Fortify installation...\n";
-    exit(0);  // Exit as no further action is needed
+    echo "Required migrations have already been applied.\n";
+    
+    // Ask user if they want to reset migrations
+    echo "Do you want to reset the migrations? (Y/N): ";
+    $response = trim(fgets(STDIN));  // Read user input
+    
+    if (strtoupper($response) === 'Y') {
+        // If user says 'Y', run migrate:reset
+        echo "Resetting migrations...\n";
+        Artisan::call('migrate:reset');
+        echo "Migrations have been reset.\n";
+        
+        // Proceed with Fortify installation
+        echo "Proceeding with Fortify installation...\n";
+        installFortify();
+    } elseif (strtoupper($response) === 'N') {
+        // If user says 'N', skip installation
+        echo "Skipping Fortify installation...\n";
+        exit(0);  // Exit without making changes
+    } else {
+        echo "Invalid response. Exiting...\n";
+        exit(1);
+    }
 } else {
     // If migrations aren't applied, install Fortify
+    echo "Required migrations are missing. Proceeding with Fortify installation...\n";
+    installFortify();
+}
+
+// Final message
+echo "Fortify installation process completed.\n";
+
+// Function to handle Fortify installation
+function installFortify()
+{
+    // Install Fortify via Composer
     echo "Installing Fortify via Composer...\n";
     exec('composer require laravel/fortify', $output, $status);
 
@@ -69,7 +93,7 @@ if (empty($missingMigrations)) {
         exit(1);
     }
 
-    // Run fortify:install only if migrations are not already applied
+    // Run fortify:install
     echo "Running fortify:install...\n";
     try {
         Artisan::call('fortify:install');
@@ -78,13 +102,11 @@ if (empty($missingMigrations)) {
         echo "Error running fortify:install: " . $e->getMessage() . "\n";
         exit(1);
     }
+
+    // Publish Fortify assets, views, and config
+    echo "Publishing Fortify assets, views, and config...\n";
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 }
 
-// Publish Fortify assets, views, and config
-echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
-
-// Final message
-echo "Fortify installation process completed.\n";
