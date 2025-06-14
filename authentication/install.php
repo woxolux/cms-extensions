@@ -41,45 +41,30 @@ function installFortify()
         }
     } else {
         echo "laravel/fortify is already listed in composer.json.\n";
-        // Even if already listed, ensure packages are installed/updated just in case
-        echo "Running 'composer install --no-dev' to ensure all dependencies are met...\n";
-        $composerOutput = [];
-        exec("{$composerCommand} install --no-dev", $composerOutput, $status); // Use --no-dev as we're in a production context potentially
-        if ($status !== 0) {
-            echo "Warning: 'composer install --no-dev' failed. Some dependencies might be missing.\n";
-            echo implode("\n", $composerOutput) . "\n";
-        } else {
-            echo "Composer dependencies re-verified.\n";
-        }
     }
 
-    // Regardless of whether it was just added or already existed,
-    // ensure autoloader is dumped and caches are cleared.
-    echo "Updating Composer autoloader...\n";
-    $composerOutput = []; // Reset output for dump-autoload
-    exec("{$composerCommand} dump-autoload", $composerOutput, $status);
+    // Always run 'composer install' to ensure all packages (including dev dependencies like Collision)
+    // are correctly installed and the autoloader is fully consistent.
+    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
+    $composerOutput = [];
+    exec("{$composerCommand} install", $composerOutput, $status); // Removed --no-dev to ensure dev packages are present
     if ($status !== 0) {
-        echo "Error: Composer dump-autoload failed.\n";
+        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
         echo implode("\n", $composerOutput) . "\n";
-        exit(1);
-    }
-    echo "Composer autoloader updated successfully.\n";
-
-    echo "Clearing and optimizing Laravel service cache...\n";
-    Artisan::call('optimize:clear'); // This often includes config, route, view caches and compiled services
-    Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
-    echo "Laravel service cache cleared.\n";
-
-    // Re-include the autoloader for the current process
-    // This ensures the running PHP script recognizes the newly available classes.
-    $autoloadPath = base_path('vendor/autoload.php');
-    if (file_exists($autoloadPath)) {
-        echo "Re-including Composer autoloader for current process...\n";
-        require $autoloadPath;
-        echo "Composer autoloader re-included.\n";
+        // Do not exit here, allow subsequent steps to attempt recovery if possible
     } else {
-        echo "Warning: Composer autoloader file not found at {$autoloadPath}.\n";
+        echo "Composer dependencies and autoloader verified.\n";
     }
+
+    // Clear and optimize Laravel's internal service cache and config cache.
+    // This forces Laravel to re-read its service provider manifest and compiled services,
+    // which should pick up Fortify's service provider and resolve class loading issues.
+    echo "Clearing and optimizing Laravel service cache...\n";
+    Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
+    Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
+    Artisan::call('cache:clear');    // Clear application cache
+    Artisan::call('view:clear');     // Clear view cache
+    echo "Laravel caches cleared and optimized.\n";
 
     // Crucial step: Manually register FortifyServiceProvider for the current application instance.
     // This ensures `fortify:install` is discoverable immediately.
@@ -96,10 +81,10 @@ function installFortify()
     }
 
     // Check if the 'fortify:install' command exists before running it
-    // This check is now more likely to pass after manual provider registration and autoloader dump
+    // This check is now more likely to pass after Composer sync and cache clearing
     $commands = Artisan::all();
     if (!isset($commands['fortify:install'])) {
-        echo "Error: 'fortify:install' command still not found after provider registration. This indicates a deeper issue.\n";
+        echo "Error: 'fortify:install' command still not found after provider registration. This indicates a deeper issue or an inconsistent environment state.\n";
         exit(1);
     }
 
@@ -201,5 +186,7 @@ try {
     echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
 }
 
+
 // Final message
 echo "Fortify installation process completed.\n";
+
