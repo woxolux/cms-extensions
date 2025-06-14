@@ -67,11 +67,10 @@ try {
 // Step 5: Check if database migrations are needed
 echo "Checking if database migrations are needed...\n";
 
-// Check the migrations table for Fortify-related migration files
+// Define a list of Fortify migration files
 $fortifyMigrations = [
     '2020_12_20_123456_create_fortify_tables.php', // Example Fortify migration name
     '2020_12_20_123457_add_two_factor_columns.php', // Another example
-    // Add other relevant Fortify migration filenames here if needed
 ];
 
 // Get a list of all applied migrations from the migrations table
@@ -83,14 +82,19 @@ $missingMigrations = array_diff($fortifyMigrations, $appliedMigrations);
 if (empty($missingMigrations)) {
     echo "Fortify migrations already applied. Skipping migrations.\n";
 } else {
-    // Run the migrations if they are missing
-    echo "Running database migrations...\n";
-    try {
-        Artisan::call('migrate');
-        echo "Database migrations completed successfully.\n";
-    } catch (Exception $e) {
-        echo "Error running migrations: " . $e->getMessage() . "\n";
-        exit(1);
+    // Step 5a: Check if the specific column exists in the users table
+    if (Schema::hasColumn('users', 'two_factor_secret')) {
+        echo "Column 'two_factor_secret' already exists in the 'users' table. Skipping migration for this column.\n";
+    } else {
+        // Run the migrations if needed
+        echo "Running database migrations...\n";
+        try {
+            Artisan::call('migrate');
+            echo "Database migrations completed successfully.\n";
+        } catch (Exception $e) {
+            echo "Error running migrations: " . $e->getMessage() . "\n";
+            exit(1);
+        }
     }
 }
 
