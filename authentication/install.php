@@ -35,7 +35,7 @@ function installFortify()
 
             // CRUCIAL: Re-dump Composer's autoloader after requiring Fortify
             // This ensures that the FortifyServiceProvider class is discoverable
-            // by PHP's autoloader in the current execution context.
+            // by PHP's autoloader on disk.
             echo "Updating Composer autoloader...\n";
             exec("{$composerCommand} dump-autoload", $composerOutput, $status);
             if ($status !== 0) {
@@ -44,6 +44,17 @@ function installFortify()
                 exit(1);
             }
             echo "Composer autoloader updated successfully.\n";
+
+            // CRUCIAL ADDITION: Re-include the autoloader for the current process
+            // This ensures the running PHP script recognizes the newly available classes.
+            $autoloadPath = base_path('vendor/autoload.php');
+            if (file_exists($autoloadPath)) {
+                echo "Re-including Composer autoloader for current process...\n";
+                require $autoloadPath;
+                echo "Composer autoloader re-included.\n";
+            } else {
+                echo "Warning: Composer autoloader file not found at {$autoloadPath}.\n";
+            }
         }
     } else {
         echo "Fortify is already installed via Composer.\n";
@@ -56,12 +67,7 @@ function installFortify()
     $provider = 'Laravel\\Fortify\\FortifyServiceProvider';
 
     // Only register if the app hasn't been fully bootstrapped or the provider isn't found
-    // The `Laravel` alias is crucial here to ensure the core services are available.
     if (!$app->hasBeenBootstrapped() || !$app->getProvider($provider)) {
-        // Before registering, ensure the class is available. This can be done by
-        // including the autoloader. If running within Artisan, it should already be loaded,
-        // but re-dumping composer autoload prior helps.
-        // If still failing, a direct require_once could be considered, but is less ideal.
         $app->register($provider);
         echo "FortifyServiceProvider registered for current runtime.\n";
     } else {
@@ -173,7 +179,6 @@ try {
     Log::error("Error publishing Fortify assets: " . $e->getMessage());
     echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
 }
-
 
 // Final message
 echo "Fortify installation process completed.\n";
