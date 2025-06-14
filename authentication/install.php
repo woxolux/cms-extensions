@@ -7,25 +7,26 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the prefixes for the migrations that should already exist in the database
-$requiredMigrationPrefixes = [
-    '2020_12_20_123456_create_users_table',  // Example migration prefix
-    '2020_12_20_123457_create_cache_table',  // Example migration prefix
-    '2020_12_20_123458_create_jobs_table',  // Example migration prefix
-    '2020_12_20_123459_add_two_factor_columns_to_users_table',  // Example migration prefix
+// Define the suffixes for the migrations we need to check (for example)
+$requiredMigrationSuffixes = [
+    '_add_two_factor_columns_to_users_table',
+    '_create_users_table',
+    '_create_cache_table',
+    '_create_jobs_table',
 ];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if all required migrations (based on prefixes) are already applied
-$missingMigrations = array_filter($requiredMigrationPrefixes, function ($prefix) use ($appliedMigrations) {
+// Check if all required migrations (based on suffixes) are already applied
+$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
     foreach ($appliedMigrations as $migration) {
-        if (strpos($migration, $prefix) === 0) {
-            return false;  // Prefix matched, so no need for this migration
+        // Check if the migration ends with the required suffix
+        if (substr($migration, -strlen($suffix)) === $suffix) {
+            return false;  // Migration with the required suffix exists
         }
     }
-    return true;  // Missing migration
+    return true;  // Migration with the required suffix is missing
 });
 
 // If no migrations are missing, skip installation
