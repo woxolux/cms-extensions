@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the suffixes for the migrations we need to check (for example)
+// Define the suffixes for the migrations we need to check
 $requiredMigrationSuffixes = [
     '_add_two_factor_columns_to_users_table',
     '_create_users_table',
@@ -37,48 +37,37 @@ if (empty($missingMigrations)) {
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
 }
 
-// Ask user if they want to reset migrations
-echo "Do you want to reset the migrations? (Y/N): ";
-$response = trim(fgets(STDIN));  // Read user input
-
-if (strtoupper($response) === 'Y') {
-    // If user says 'Y', delete migration files matching '_add_two_factor_columns_to_users_table.php'
-    echo "Deleting Fortify migration files...\n";
+// No user prompt for resetting migrations — directly proceed
+echo "Deleting migration files...\n";
     
-    // Define the path to the migrations directory
-    $migrationPath = database_path('migrations');
+// Define the path to the migrations directory
+$migrationPath = database_path('migrations');
     
-    // Get all files in the migrations folder
-    $files = File::files($migrationPath);
+// Get all files in the migrations folder
+$files = File::files($migrationPath);
     
-    // Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
-    foreach ($files as $file) {
-        if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
-            echo "Deleting file: " . $file->getFilename() . "\n";
-            File::delete($file);  // Delete the file
-        }
+// Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
+foreach ($files as $file) {
+    if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
+        echo "Deleting file: " . $file->getFilename() . "\n";
+        File::delete($file);  // Delete the file
     }
-
-    // Reset migrations
-    echo "Resetting migrations...\n";
-    Artisan::call('migrate:reset');
-    echo "Migrations have been reset.\n";
-
-    // **Run migrate after reset** to reapply all migrations
-    echo "Running migrations...\n";
-    Artisan::call('migrate');
-    echo "Migrations have been successfully reapplied.\n";
-
-    // Proceed with Fortify installation
-    echo "Proceeding with Fortify installation...\n";
-    installFortify();
-} elseif (strtoupper($response) === 'N') {
-    // If user says 'N', skip installation
-    echo "Skipping Fortify installation...\n";
-} else {
-    echo "Invalid response. Exiting...\n";
-    exit(1);
 }
+
+// Reset migrations
+echo "Resetting migrations...\n";
+Artisan::call('migrate:reset');
+echo "Migrations have been reset.\n";
+
+// **Run migrate after reset** to reapply all migrations
+echo "Running migrations...\n";
+Artisan::call('migrate');
+echo "Migrations have been successfully reapplied.\n";
+
+// Proceed with Fortify installation
+echo "Proceeding with Fortify installation...\n";
+installFortify();
+
 
 // Always proceed to publish Fortify assets, views, and config
 echo "Publishing Fortify assets, views, and config...\n";
@@ -92,7 +81,7 @@ echo "Fortify installation process completed.\n";
 // Function to handle Fortify installation
 function installFortify()
 {
-    // Install Fortify via Composer
+    // Ensure Fortify is installed via Composer
     echo "Installing Fortify via Composer...\n";
     exec('composer require laravel/fortify', $output, $status);
 
@@ -126,6 +115,15 @@ function installFortify()
         echo "Could not find config/app.php. Please ensure it's in the right location.\n";
         exit(1);
     }
+
+    // Clear config cache to ensure the service provider is properly registered
+    Artisan::call('config:clear');
+
+    // Clear the application cache
+    Artisan::call('cache:clear');
+
+    // Add a small delay to ensure everything is fully loaded
+    sleep(1);
 
     // Run fortify:install
     echo "Running fortify:install...\n";
