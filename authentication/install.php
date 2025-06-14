@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
@@ -63,30 +64,26 @@ try {
     exit(1);
 }
 
-// Step 5: Check if migrations are needed
+// Step 5: Check if database migrations are needed
 echo "Checking if database migrations are needed...\n";
 
-// Query the migrations table to check if Fortify migrations have been applied
-$existingMigrations = DB::table('migrations')->pluck('migration')->toArray();
-
+// Check the migrations table for Fortify-related migration files
 $fortifyMigrations = [
-    '2020_10_12_100000_create_users_table', // Example of migration that adds the two_factor_secret column
-    // Add other Fortify-related migration filenames here if necessary
+    '2020_12_20_123456_create_fortify_tables.php', // Example Fortify migration name
+    '2020_12_20_123457_add_two_factor_columns.php', // Another example
+    // Add other relevant Fortify migration filenames here if needed
 ];
 
-// Check if Fortify migrations are already applied
-$migrationsRequired = false;
+// Get a list of all applied migrations from the migrations table
+$appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-foreach ($fortifyMigrations as $migration) {
-    if (!in_array($migration, $existingMigrations)) {
-        $migrationsRequired = true;
-        break;
-    }
-}
+// Check if Fortify migrations have already been run
+$missingMigrations = array_diff($fortifyMigrations, $appliedMigrations);
 
-if (!$migrationsRequired) {
-    echo "Migrations are already up to date.\n";
+if (empty($missingMigrations)) {
+    echo "Fortify migrations already applied. Skipping migrations.\n";
 } else {
+    // Run the migrations if they are missing
     echo "Running database migrations...\n";
     try {
         Artisan::call('migrate');
