@@ -29,19 +29,10 @@ $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix)
     return true;  // Migration with the required suffix is missing
 });
 
-// If no migrations are missing, proceed to ask if user wants to reset
-if (empty($missingMigrations)) {
-    echo "Required migrations have already been applied.\n";
-} else {
-    // If migrations aren't applied, we proceed to installation
+// If migrations are missing, proceed to installation automatically
+if (!empty($missingMigrations)) {
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
-}
 
-// Ask user if they want to reset migrations
-echo "Do you want to reset the migrations? (Y/N): ";
-$response = trim(fgets(STDIN));  // Read user input
-
-if (strtoupper($response) === 'Y') {
     // If user says 'Y', delete migration files matching '_add_two_factor_columns_to_users_table.php'
     echo "Deleting Fortify migration files...\n";
     
@@ -72,12 +63,8 @@ if (strtoupper($response) === 'Y') {
     // Proceed with Fortify installation
     echo "Proceeding with Fortify installation...\n";
     installFortify();
-} elseif (strtoupper($response) === 'N') {
-    // If user says 'N', skip installation
-    echo "Skipping Fortify installation...\n";
 } else {
-    echo "Invalid response. Exiting...\n";
-    exit(1);
+    echo "Required migrations have already been applied.\n";
 }
 
 // Always proceed to publish Fortify assets, views, and config
