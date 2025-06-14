@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 echo "Running Fortify installation...\n";
 
 // Step 1: Install Fortify via Composer (specify version)
-$fortifyVersion = '1.26.*'; // Replace with the version you need
+$fortifyVersion = '1.26.*'; // Specify the exact version of Fortify
 echo "Installing Fortify version {$fortifyVersion} via Composer...\n";
 exec("composer require laravel/fortify:{$fortifyVersion}", $output, $status);
 
@@ -56,27 +56,23 @@ Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServi
 echo "Running fortify:install...\n";
 try {
     Artisan::call('fortify:install');
-    echo "Fortify installed successfully.\n";
+    echo "Fortify installation completed successfully.\n";
 } catch (Exception $e) {
     echo "Error running fortify:install: " . $e->getMessage() . "\n";
     exit(1);
 }
 
 // Step 5: Clean up temporary installation files (if any)
-echo "Cleaning up temporary installation files...\n";
-// Add any cleanup logic you need here, for example deleting temporary files or directories
 $installTempPath = storage_path('app/private/cms-extensions-main');
 if (File::exists($installTempPath)) {
     File::deleteDirectory($installTempPath);
-    echo "Temporary files cleaned up successfully.\n";
-} else {
-    echo "No temporary installation files to clean up.\n";
+    echo "Temporary installation files cleaned up.\n";
 }
 
-// Step 6: Inform the user that the installation is complete
-echo "Fortify installation completed successfully.\n";
-
-// Step 7: Output the installed version of Fortify
+// Step 6: Output the installed version of Fortify
 echo "Installed Fortify version: ";
 exec('composer show laravel/fortify | grep versions', $versionOutput);
 echo implode("\n", $versionOutput);
+
+// Final message
+echo "Fortify installation process completed.\n";
