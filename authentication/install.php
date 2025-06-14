@@ -6,16 +6,17 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Step 1: Install Fortify via Composer
-echo "Installing Fortify via Composer...\n";
-exec('composer require laravel/fortify', $output, $status);
+// Step 1: Install Fortify via Composer (specify version)
+$fortifyVersion = '1.26.*'; // Replace with the version you need
+echo "Installing Fortify version {$fortifyVersion} via Composer...\n";
+exec("composer require laravel/fortify:{$fortifyVersion}", $output, $status);
 
 if ($status !== 0) {
     echo "Error: Fortify installation failed via Composer.\n";
     echo implode("\n", $output);
     exit(1);
 } else {
-    echo "Fortify installed successfully via Composer.\n";
+    echo "Fortify {$fortifyVersion} installed successfully via Composer.\n";
 }
 
 // Step 2: Ensure the Fortify service provider is registered in `config/app.php`
@@ -74,3 +75,8 @@ if (File::exists($installTempPath)) {
 
 // Step 6: Inform the user that the installation is complete
 echo "Fortify installation completed successfully.\n";
+
+// Step 7: Output the installed version of Fortify
+echo "Installed Fortify version: ";
+exec('composer show laravel/fortify | grep versions', $versionOutput);
+echo implode("\n", $versionOutput);
