@@ -10,8 +10,6 @@ echo "Running Fortify installation...\n";
 
 // Define the list of required migration files that should already exist in the database
 $requiredMigrations = [
-    '2020_12_20_123456_create_fortify_tables.php', // Example Fortify migration name
-    '2020_12_20_123457_add_two_factor_columns.php', // Another example
     'create_users_table.php',
     'create_cache_table.php',
     'create_jobs_table.php',
@@ -26,6 +24,7 @@ $missingMigrations = array_diff($requiredMigrations, $appliedMigrations);
 
 if (empty($missingMigrations)) {
     echo "Required migrations have already been applied. Skipping Fortify installation...\n";
+    exit(0);  // Exit here as no further action is needed
 } else {
     // If migrations aren't applied, install Fortify
     echo "Installing Fortify via Composer...\n";
@@ -65,13 +64,8 @@ if (empty($missingMigrations)) {
     // Run fortify:install only if migrations are not already applied
     echo "Running fortify:install...\n";
     try {
-        // Only run fortify:install if migrations are not already applied
-        if (!empty($missingMigrations)) {
-            Artisan::call('fortify:install');
-            echo "Fortify installation completed successfully.\n";
-        } else {
-            echo "Required migrations already applied. Skipping fortify:install...\n";
-        }
+        Artisan::call('fortify:install');
+        echo "Fortify installation completed successfully.\n";
     } catch (Exception $e) {
         echo "Error running fortify:install: " . $e->getMessage() . "\n";
         exit(1);
