@@ -8,20 +8,24 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Check if Fortify migration has already been run (you can customize this based on your needs)
-$fortifyMigrations = [
+// Define the list of required migration files that should already exist in the database
+$requiredMigrations = [
     '2020_12_20_123456_create_fortify_tables.php', // Example Fortify migration name
     '2020_12_20_123457_add_two_factor_columns.php', // Another example
+    'create_users_table.php',
+    'create_cache_table.php',
+    'create_jobs_table.php',
+    'add_two_factor_columns_to_users_table.php',
 ];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if any Fortify migrations are missing
-$missingMigrations = array_diff($fortifyMigrations, $appliedMigrations);
+// Check if all required migrations are already applied
+$missingMigrations = array_diff($requiredMigrations, $appliedMigrations);
 
 if (empty($missingMigrations)) {
-    echo "Fortify migrations have already been applied. Skipping Fortify installation...\n";
+    echo "Required migrations have already been applied. Skipping Fortify installation...\n";
 } else {
     // If migrations aren't applied, install Fortify
     echo "Installing Fortify via Composer...\n";
@@ -66,7 +70,7 @@ if (empty($missingMigrations)) {
             Artisan::call('fortify:install');
             echo "Fortify installation completed successfully.\n";
         } else {
-            echo "Fortify migration already applied. Skipping fortify:install...\n";
+            echo "Required migrations already applied. Skipping fortify:install...\n";
         }
     } catch (Exception $e) {
         echo "Error running fortify:install: " . $e->getMessage() . "\n";
