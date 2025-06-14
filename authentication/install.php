@@ -45,31 +45,8 @@ Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServi
 // Step 4: Run the Fortify installation command
 echo "Running fortify:install...\n";
 
-// Check if the fortify:install command exists
-if (Artisan::commandExists('fortify:install')) {
+try {
     Artisan::call('fortify:install');
     echo "Fortify installed successfully.\n";
-} else {
-    echo "The command 'fortify:install' does not exist. Ensure Fortify is properly installed.\n";
-    exit(1);
-}
-
-// Step 5: Set up views and controllers (custom implementation)
-// Add any additional installation steps you need, such as copying custom views or controllers.
-// Example:
-echo "Copying custom view files...\n";
-
-// Define the path for the extension view files (assuming they are in the extension's `resources/views` folder)
-$extensionViewsPath = base_path('extensions/authentication/resources/views');
-$viewsTargetPath = resource_path('views');
-
-// Ensure the views directory exists
-if (File::exists($extensionViewsPath)) {
-    File::copyDirectory($extensionViewsPath, $viewsTargetPath);
-    echo "Custom view files copied successfully.\n";
-} else {
-    echo "No custom view files found in the extension folder.\n";
-}
-
-// Step 6: Inform the user that the installation is complete
-echo "Authentication extension installed successfully.\n";
+} catch (Exception $e) {
+    echo "Error running fortify:install: " . $e->getMessa
