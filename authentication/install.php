@@ -3,9 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
-// Start installation
 echo "Running Fortify installation...\n";
 
 // Step 1: Install Fortify via Composer
@@ -20,18 +18,18 @@ if ($status !== 0) {
     echo "Fortify installed successfully via Composer.\n";
 }
 
-// Step 2: Ensure the Fortify service provider is registered in `config/app.php`
+// Step 2: Ensure the Fortify service provider is registered in config/app.php
 echo "Registering Fortify service provider...\n";
 $serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
 
-// Get the path to the `config/app.php` file
+// Get the path to the config/app.php file
 $appConfigPath = base_path('config/app.php');
 
 // Ensure the service provider is registered
 if (File::exists($appConfigPath)) {
     $configContents = File::get($appConfigPath);
     if (strpos($configContents, $serviceProvider) === false) {
-        // Add the service provider to the `providers` array
+        // Add the service provider to the providers array
         $configContents = preg_replace(
             "/'providers' => \[.*\],/s",
             "'providers' => [\n        $serviceProvider,\n    ],",
@@ -66,7 +64,7 @@ try {
 // Step 5: Set up views and controllers (custom implementation)
 echo "Copying custom view files...\n";
 
-// Define the path for the extension view files (assuming they are in the extension's `resources/views` folder)
+// Define the path for the extension view files (assuming they are in the extension's resources/views folder)
 $extensionViewsPath = base_path('extensions/authentication/resources/views');
 $viewsTargetPath = resource_path('views');
 
@@ -81,7 +79,7 @@ if (File::exists($extensionViewsPath)) {
 // Step 6: Set up controllers (custom implementation)
 echo "Copying custom controllers...\n";
 
-// Define the path for the extension controllers (assuming they are in the extension's `app/Http/Controllers` folder)
+// Define the path for the extension controllers (assuming they are in the extension's app/Http/Controllers folder)
 $extensionControllersPath = base_path('extensions/authentication/app/Http/Controllers');
 $controllersTargetPath = app_path('Http/Controllers');
 
@@ -105,4 +103,4 @@ if (File::exists($installTempPath)) {
 }
 
 // Step 8: Inform the user that the installation is complete
-echo "Authentication extension installed successfully.\n";
+echo "Authentication extension installed successfully.\n"; 
