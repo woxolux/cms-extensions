@@ -47,7 +47,7 @@ function installFortify()
     // are correctly installed and the autoloader is fully consistent.
     echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
     $composerOutput = [];
-    exec("{$composerCommand} install", $composerOutput, $status); // Removed --no-dev to ensure dev packages are present
+    exec("{$composerCommand} install", $composerOutput, $status);
     if ($status !== 0) {
         echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
         echo implode("\n", $composerOutput) . "\n";
@@ -65,6 +65,19 @@ function installFortify()
     Artisan::call('cache:clear');    // Clear application cache
     Artisan::call('view:clear');     // Clear view cache
     echo "Laravel caches cleared and optimized.\n";
+
+    // CRUCIAL ADDITION (re-introduced): Re-include the Composer autoloader for the current process
+    // This is vital to ensure the running PHP script recognizes the newly available classes
+    // (like FortifyServiceProvider) after Composer operations have completed.
+    $autoloadPath = base_path('vendor/autoload.php');
+    if (file_exists($autoloadPath)) {
+        echo "Re-including Composer autoloader for current process to load new classes...\n";
+        require $autoloadPath;
+        echo "Composer autoloader re-included.\n";
+    } else {
+        echo "Warning: Composer autoloader file not found at {$autoloadPath}. Cannot re-include.\n";
+    }
+
 
     // Crucial step: Manually register FortifyServiceProvider for the current application instance.
     // This ensures `fortify:install` is discoverable immediately.
@@ -144,7 +157,7 @@ if (strtoupper($response) === 'Y') {
     // Loop through the files and delete those matching the Fortify migration suffix
     foreach ($files as $file) {
         if (strpos($file->getFilename(), '_create_two_factor_authentication_tables.php') !== false ||
-            strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
+            strpos(basename($file->getFilename()), '_add_two_factor_columns_to_users_table.php') !== false) {
             echo "Deleting file: " . $file->getFilename() . "\n";
             File::delete($file); // Delete the file
         }
@@ -186,7 +199,5 @@ try {
     echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
 }
 
-
 // Final message
 echo "Fortify installation process completed.\n";
-
