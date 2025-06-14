@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the suffixes for the migrations we need to check
+// Define the suffixes for the migrations we need to check (for example)
 $requiredMigrationSuffixes = [
     '_add_two_factor_columns_to_users_table',
     '_create_users_table',
@@ -37,37 +37,48 @@ if (empty($missingMigrations)) {
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
 }
 
-// No user prompt for resetting migrations — directly proceed
-echo "Deleting migration files...\n";
+// Ask user if they want to reset migrations
+echo "Do you want to reset the migrations? (Y/N): ";
+$response = trim(fgets(STDIN));  // Read user input
+
+if (strtoupper($response) === 'Y') {
+    // If user says 'Y', delete migration files matching '_add_two_factor_columns_to_users_table.php'
+    echo "Deleting Fortify migration files...\n";
     
-// Define the path to the migrations directory
-$migrationPath = database_path('migrations');
+    // Define the path to the migrations directory
+    $migrationPath = database_path('migrations');
     
-// Get all files in the migrations folder
-$files = File::files($migrationPath);
+    // Get all files in the migrations folder
+    $files = File::files($migrationPath);
     
-// Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
-foreach ($files as $file) {
-    if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
-        echo "Deleting file: " . $file->getFilename() . "\n";
-        File::delete($file);  // Delete the file
+    // Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
+    foreach ($files as $file) {
+        if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
+            echo "Deleting file: " . $file->getFilename() . "\n";
+            File::delete($file);  // Delete the file
+        }
     }
+
+    // Reset migrations
+    echo "Resetting migrations...\n";
+    Artisan::call('migrate:reset');
+    echo "Migrations have been reset.\n";
+
+    // **Run migrate after reset** to reapply all migrations
+    echo "Running migrations...\n";
+    Artisan::call('migrate');
+    echo "Migrations have been successfully reapplied.\n";
+
+    // Proceed with Fortify installation
+    echo "Proceeding with Fortify installation...\n";
+    installFortify();
+} elseif (strtoupper($response) === 'N') {
+    // If user says 'N', skip installation
+    echo "Skipping Fortify installation...\n";
+} else {
+    echo "Invalid response. Exiting...\n";
+    exit(1);
 }
-
-// Reset migrations
-echo "Resetting migrations...\n";
-Artisan::call('migrate:reset');
-echo "Migrations have been reset.\n";
-
-// **Run migrate after reset** to reapply all migrations
-echo "Running migrations...\n";
-Artisan::call('migrate');
-echo "Migrations have been successfully reapplied.\n";
-
-// Proceed with Fortify installation
-echo "Proceeding with Fortify installation...\n";
-installFortify();
-
 
 // Always proceed to publish Fortify assets, views, and config
 echo "Publishing Fortify assets, views, and config...\n";
@@ -81,16 +92,25 @@ echo "Fortify installation process completed.\n";
 // Function to handle Fortify installation
 function installFortify()
 {
-    // Ensure Fortify is installed via Composer
-    echo "Installing Fortify via Composer...\n";
-    exec('composer require laravel/fortify', $output, $status);
+    // Check if Fortify is already installed (via Composer)
+    echo "Checking if Fortify is installed via Composer...\n";
+    $composerOutput = [];
+    exec('composer show laravel/fortify', $composerOutput, $status);
 
     if ($status !== 0) {
-        echo "Error: Fortify installation failed via Composer.\n";
-        echo implode("\n", $output);
-        exit(1);
+        // Install Fortify via Composer
+        echo "Fortify is not installed. Installing Fortify via Composer...\n";
+        exec('composer require laravel/fortify', $composerOutput, $status);
+
+        if ($status !== 0) {
+            echo "Error: Fortify installation failed via Composer.\n";
+            echo implode("\n", $composerOutput);
+            exit(1);
+        } else {
+            echo "Fortify installed successfully via Composer.\n";
+        }
     } else {
-        echo "Fortify installed successfully via Composer.\n";
+        echo "Fortify is already installed.\n";
     }
 
     // Register the service provider in config/app.php
@@ -116,10 +136,10 @@ function installFortify()
         exit(1);
     }
 
-    // Clear config cache to ensure the service provider is properly registered
+    // Clear the config cache
     Artisan::call('config:clear');
 
-    // Clear the application cache
+    // Clear application cache to ensure everything is up-to-date
     Artisan::call('cache:clear');
 
     // Add a small delay to ensure everything is fully loaded
