@@ -62,14 +62,21 @@ try {
     exit(1);
 }
 
-// Step 5: Run migrations to set up the database schema
-echo "Running database migrations...\n";
-try {
-    Artisan::call('migrate');
-    echo "Database migrations completed successfully.\n";
-} catch (Exception $e) {
-    echo "Error running migrations: " . $e->getMessage() . "\n";
-    exit(1);
+// Step 5: Check if migration is needed
+echo "Checking if database migrations are needed...\n";
+$migrationStatus = Artisan::call('migrate:status', ['--pretend' => true]);
+
+if (strpos($migrationStatus, 'No migrations found') === false) {
+    echo "Migrations are already up to date.\n";
+} else {
+    echo "Running database migrations...\n";
+    try {
+        Artisan::call('migrate');
+        echo "Database migrations completed successfully.\n";
+    } catch (Exception $e) {
+        echo "Error running migrations: " . $e->getMessage() . "\n";
+        exit(1);
+    }
 }
 
 // Step 6: Clean up temporary installation files (if any)
