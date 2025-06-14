@@ -3,28 +3,35 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the list of required migration files that should already exist in the database
-$requiredMigrations = [
-    'create_users_table.php',
-    'create_cache_table.php',
-    'create_jobs_table.php',
-    'add_two_factor_columns_to_users_table.php',
+// Define the prefixes for the migrations that should already exist in the database
+$requiredMigrationPrefixes = [
+    '2020_12_20_123456_create_users_table',  // Example migration prefix
+    '2020_12_20_123457_create_cache_table',  // Example migration prefix
+    '2020_12_20_123458_create_jobs_table',  // Example migration prefix
+    '2020_12_20_123459_add_two_factor_columns_to_users_table',  // Example migration prefix
 ];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if all required migrations are already applied
-$missingMigrations = array_diff($requiredMigrations, $appliedMigrations);
+// Check if all required migrations (based on prefixes) are already applied
+$missingMigrations = array_filter($requiredMigrationPrefixes, function ($prefix) use ($appliedMigrations) {
+    foreach ($appliedMigrations as $migration) {
+        if (strpos($migration, $prefix) === 0) {
+            return false;  // Prefix matched, so no need for this migration
+        }
+    }
+    return true;  // Missing migration
+});
 
+// If no migrations are missing, skip installation
 if (empty($missingMigrations)) {
     echo "Required migrations have already been applied. Skipping Fortify installation...\n";
-    exit(0);  // Exit here as no further action is needed
+    exit(0);  // Exit as no further action is needed
 } else {
     // If migrations aren't applied, install Fortify
     echo "Installing Fortify via Composer...\n";
