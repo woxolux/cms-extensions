@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the suffixes for the migrations we need to check (for example)
+// Define the suffixes for the migrations we need to check
 $requiredMigrationSuffixes = [
     '_add_two_factor_columns_to_users_table',
     '_create_users_table',
@@ -21,28 +21,25 @@ $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 // Check if all required migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
     foreach ($appliedMigrations as $migration) {
-        // Check if the migration ends with the required suffix
         if (substr($migration, -strlen($suffix)) === $suffix) {
-            return false;  // Migration with the required suffix exists
+            return false;
         }
     }
-    return true;  // Migration with the required suffix is missing
+    return true;
 });
 
-// If no migrations are missing, proceed to ask if user wants to reset
-if (empty($missingMigrations)) {
-    echo "Required migrations have already been applied.\n";
-} else {
-    // If migrations aren't applied, we proceed to installation
+// If migrations are missing, proceed to installation
+if (!empty($missingMigrations)) {
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
+} else {
+    echo "Required migrations have already been applied.\n";
 }
 
 // Ask user if they want to reset migrations
 echo "Do you want to reset the migrations? (Y/N): ";
-$response = trim(fgets(STDIN));  // Read user input
+$response = trim(fgets(STDIN));
 
 if (strtoupper($response) === 'Y') {
-    // If user says 'Y', delete migration files matching '_add_two_factor_columns_to_users_table.php'
     echo "Deleting Fortify migration files...\n";
     
     // Define the path to the migrations directory
@@ -51,7 +48,7 @@ if (strtoupper($response) === 'Y') {
     // Get all files in the migrations folder
     $files = File::files($migrationPath);
     
-    // Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
+    // Loop through the files and delete those matching the suffix
     foreach ($files as $file) {
         if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
             echo "Deleting file: " . $file->getFilename() . "\n";
@@ -73,7 +70,6 @@ if (strtoupper($response) === 'Y') {
     echo "Proceeding with Fortify installation...\n";
     installFortify();
 } elseif (strtoupper($response) === 'N') {
-    // If user says 'N', skip installation
     echo "Skipping Fortify installation...\n";
 } else {
     echo "Invalid response. Exiting...\n";
@@ -98,7 +94,6 @@ function installFortify()
     exec('composer show laravel/fortify', $composerOutput, $status);
 
     if ($status !== 0) {
-        // Install Fortify via Composer
         echo "Fortify is not installed. Installing Fortify via Composer...\n";
         exec('composer require laravel/fortify', $composerOutput, $status);
 
@@ -113,7 +108,7 @@ function installFortify()
         echo "Fortify is already installed.\n";
     }
 
-    // Register the service provider in config/app.php
+    // Register the service provider in config/app.php if not already registered
     echo "Registering Fortify service provider...\n";
     $serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
     $appConfigPath = base_path('config/app.php');
@@ -147,7 +142,7 @@ function installFortify()
     // Add a small delay to ensure everything is fully loaded
     sleep(2);
 
-    // Check if 'fortify:install' command exists
+    // Check if the 'fortify:install' command exists before running it
     $commands = Artisan::all();
     if (!isset($commands['fortify:install'])) {
         echo "Error: 'fortify:install' command does not exist. Please check the service provider registration.\n";
