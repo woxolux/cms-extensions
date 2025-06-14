@@ -29,35 +29,34 @@ $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix)
     return true;  // Migration with the required suffix is missing
 });
 
-// If no migrations are missing, skip installation
+// If no migrations are missing, proceed to ask if user wants to reset
 if (empty($missingMigrations)) {
     echo "Required migrations have already been applied.\n";
-
-    // Ask user if they want to reset the migrations
-    echo "Do you want to reset the migrations? (Y/N): ";
-    $response = trim(fgets(STDIN));  // Read user input
-    
-    if (strtoupper($response) === 'Y') {
-        // If user says 'Y', run migrate:reset
-        echo "Resetting migrations...\n";
-        Artisan::call('migrate:reset');
-        echo "Migrations have been reset.\n";
-        
-        // Proceed with Fortify installation
-        echo "Proceeding with Fortify installation...\n";
-        installFortify();
-    } elseif (strtoupper($response) === 'N') {
-        // If user says 'N', skip installation
-        echo "Skipping Fortify installation...\n";
-        exit(0);  // Exit without making changes
-    } else {
-        echo "Invalid response. Exiting...\n";
-        exit(1);
-    }
 } else {
-    // If migrations aren't applied, install Fortify
+    // If migrations aren't applied, we proceed to installation
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
+}
+
+// Ask user if they want to reset migrations
+echo "Do you want to reset the migrations? (Y/N): ";
+$response = trim(fgets(STDIN));  // Read user input
+
+if (strtoupper($response) === 'Y') {
+    // If user says 'Y', run migrate:reset
+    echo "Resetting migrations...\n";
+    Artisan::call('migrate:reset');
+    echo "Migrations have been reset.\n";
+
+    // Proceed with Fortify installation
+    echo "Proceeding with Fortify installation...\n";
     installFortify();
+} elseif (strtoupper($response) === 'N') {
+    // If user says 'N', skip installation
+    echo "Skipping Fortify installation...\n";
+    exit(0);  // Exit without making changes
+} else {
+    echo "Invalid response. Exiting...\n";
+    exit(1);
 }
 
 // Final message
