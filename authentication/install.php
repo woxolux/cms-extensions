@@ -22,4 +22,17 @@ if (!class_exists(\Laravel\Fortify\FortifyServiceProvider::class)) {
 
 // Run Fortify install command
 echo "Running Fortify:install...\n";
-Artisan::call
+Artisan::call('fortify:install');
+
+// Run migrations for the authentication extension
+echo "Running migrations...\n";
+Artisan::call('migrate');
+
+// Publish Fortify views if needed
+echo "Publishing Fortify views...\n";
+Artisan::call('vendor:publish', [
+    '--provider' => 'Laravel\Fortify\FortifyServiceProvider',
+    '--tag' => 'views',
+]);
+
+echo "Authentication installation completed successfully.\n";
