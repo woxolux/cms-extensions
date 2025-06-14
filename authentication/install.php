@@ -53,11 +53,16 @@ if (strtoupper($response) === 'Y') {
 } elseif (strtoupper($response) === 'N') {
     // If user says 'N', skip installation
     echo "Skipping Fortify installation...\n";
-    exit(0);  // Exit without making changes
 } else {
     echo "Invalid response. Exiting...\n";
     exit(1);
 }
+
+// Always proceed to publish Fortify assets, views, and config
+echo "Publishing Fortify assets, views, and config...\n";
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 
 // Final message
 echo "Fortify installation process completed.\n";
@@ -109,10 +114,4 @@ function installFortify()
         echo "Error running fortify:install: " . $e->getMessage() . "\n";
         exit(1);
     }
-
-    // Publish Fortify assets, views, and config
-    echo "Publishing Fortify assets, views, and config...\n";
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 }
