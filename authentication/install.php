@@ -62,14 +62,24 @@ try {
     exit(1);
 }
 
-// Step 5: Clean up temporary installation files (if any)
+// Step 5: Run migrations to set up the database schema
+echo "Running database migrations...\n";
+try {
+    Artisan::call('migrate');
+    echo "Database migrations completed successfully.\n";
+} catch (Exception $e) {
+    echo "Error running migrations: " . $e->getMessage() . "\n";
+    exit(1);
+}
+
+// Step 6: Clean up temporary installation files (if any)
 $installTempPath = storage_path('app/private/cms-extensions-main');
 if (File::exists($installTempPath)) {
     File::deleteDirectory($installTempPath);
     echo "Temporary installation files cleaned up.\n";
 }
 
-// Step 6: Output the installed version of Fortify (without the asterisk)
+// Step 7: Output the installed version of Fortify (without the asterisk)
 echo "Installed Fortify version: ";
 exec('composer show laravel/fortify --latest', $versionOutput);
 $version = '';
