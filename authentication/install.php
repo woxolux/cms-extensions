@@ -61,8 +61,13 @@ if (empty($missingMigrations)) {
     // Run fortify:install only if migrations are not already applied
     echo "Running fortify:install...\n";
     try {
-        Artisan::call('fortify:install');
-        echo "Fortify installation completed successfully.\n";
+        // Only run fortify:install if migrations are not already applied
+        if (!empty($missingMigrations)) {
+            Artisan::call('fortify:install');
+            echo "Fortify installation completed successfully.\n";
+        } else {
+            echo "Fortify migration already applied. Skipping fortify:install...\n";
+        }
     } catch (Exception $e) {
         echo "Error running fortify:install: " . $e->getMessage() . "\n";
         exit(1);
