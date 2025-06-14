@@ -10,54 +10,75 @@ echo "Running Fortify installation...\n";
 // Function to handle Fortify installation
 function installFortify()
 {
-    // Ensure Fortify is installed via Composer
-    echo "Checking if Fortify is installed via Composer...\n";
-    $composerOutput = [];
-    // Use the full path to composer to avoid issues with PATH environment variable in some environments
-    $composerCommand = 'composer'; // Adjust if composer is not in PATH, e.g., '/usr/local/bin/composer'
-    exec("{$composerCommand} show laravel/fortify", $composerOutput, $status);
+    echo "Ensuring Fortify is installed via Composer...\n";
+    $composerCommand = 'composer';
 
-    if ($status !== 0) {
-        echo "Fortify is not installed. Installing Fortify via Composer...\n";
+    // Check if laravel/fortify is already in composer.json
+    $composerJsonPath = base_path('composer.json');
+    if (!File::exists($composerJsonPath)) {
+        echo "Error: composer.json not found at " . $composerJsonPath . "\n";
+        exit(1);
+    }
+
+    $composerJsonContent = file_get_contents($composerJsonPath);
+    $composerJson = json_decode($composerJsonContent, true);
+
+    $fortifyAlreadyInComposerJson = isset($composerJson['require']['laravel/fortify']) ||
+                                    isset($composerJson['require-dev']['laravel/fortify']);
+
+    if (!$fortifyAlreadyInComposerJson) {
+        echo "Fortify not found in composer.json. Requiring laravel/fortify...\n";
+        $composerOutput = [];
+        // The 'require' command will add to composer.json and automatically run update/install
         exec("{$composerCommand} require laravel/fortify", $composerOutput, $status);
 
         if ($status !== 0) {
-            echo "Error: Fortify installation failed via Composer.\n";
+            echo "Error: Requiring laravel/fortify failed.\n";
             echo implode("\n", $composerOutput) . "\n";
             exit(1);
         } else {
-            echo "Fortify installed successfully via Composer.\n";
-            // Clear caches after composer require to help ensure new service providers are picked up
-            Artisan::call('config:clear');
-            Artisan::call('cache:clear');
-            Artisan::call('view:clear'); // Also clear view cache
-            echo "Config, cache, and view caches cleared.\n";
-
-            // CRUCIAL: Re-dump Composer's autoloader after requiring Fortify
-            // This ensures that the FortifyServiceProvider class is discoverable
-            // by PHP's autoloader on disk.
-            echo "Updating Composer autoloader...\n";
-            exec("{$composerCommand} dump-autoload", $composerOutput, $status);
-            if ($status !== 0) {
-                echo "Error: Composer dump-autoload failed.\n";
-                echo implode("\n", $composerOutput) . "\n";
-                exit(1);
-            }
-            echo "Composer autoloader updated successfully.\n";
-
-            // CRUCIAL ADDITION: Re-include the autoloader for the current process
-            // This ensures the running PHP script recognizes the newly available classes.
-            $autoloadPath = base_path('vendor/autoload.php');
-            if (file_exists($autoloadPath)) {
-                echo "Re-including Composer autoloader for current process...\n";
-                require $autoloadPath;
-                echo "Composer autoloader re-included.\n";
-            } else {
-                echo "Warning: Composer autoloader file not found at {$autoloadPath}.\n";
-            }
+            echo "laravel/fortify successfully added to composer.json and packages installed/updated.\n";
         }
     } else {
-        echo "Fortify is already installed via Composer.\n";
+        echo "laravel/fortify is already listed in composer.json.\n";
+        // Even if already listed, ensure packages are installed/updated just in case
+        echo "Running 'composer install --no-dev' to ensure all dependencies are met...\n";
+        $composerOutput = [];
+        exec("{$composerCommand} install --no-dev", $composerOutput, $status); // Use --no-dev as we're in a production context potentially
+        if ($status !== 0) {
+            echo "Warning: 'composer install --no-dev' failed. Some dependencies might be missing.\n";
+            echo implode("\n", $composerOutput) . "\n";
+        } else {
+            echo "Composer dependencies re-verified.\n";
+        }
+    }
+
+    // Regardless of whether it was just added or already existed,
+    // ensure autoloader is dumped and caches are cleared.
+    echo "Updating Composer autoloader...\n";
+    $composerOutput = []; // Reset output for dump-autoload
+    exec("{$composerCommand} dump-autoload", $composerOutput, $status);
+    if ($status !== 0) {
+        echo "Error: Composer dump-autoload failed.\n";
+        echo implode("\n", $composerOutput) . "\n";
+        exit(1);
+    }
+    echo "Composer autoloader updated successfully.\n";
+
+    echo "Clearing and optimizing Laravel service cache...\n";
+    Artisan::call('optimize:clear'); // This often includes config, route, view caches and compiled services
+    Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
+    echo "Laravel service cache cleared.\n";
+
+    // Re-include the autoloader for the current process
+    // This ensures the running PHP script recognizes the newly available classes.
+    $autoloadPath = base_path('vendor/autoload.php');
+    if (file_exists($autoloadPath)) {
+        echo "Re-including Composer autoloader for current process...\n";
+        require $autoloadPath;
+        echo "Composer autoloader re-included.\n";
+    } else {
+        echo "Warning: Composer autoloader file not found at {$autoloadPath}.\n";
     }
 
     // Crucial step: Manually register FortifyServiceProvider for the current application instance.
@@ -157,7 +178,7 @@ if (strtoupper($response) === 'Y') {
     // Proceed with Fortify installation after ensuring migrations are clean
     installFortify();
 } elseif (strtoupper($response) === 'N') {
-    echo "Skipping Fortify-related migration reset. Proceeding with Fortify installation (if not already installed)...\n";
+    echo "Skipping Fortify-related migration reset. Proceeding with Fortify installation (if not already installed)....\n";
     // Even if not resetting, still try to install Fortify if it's missing
     installFortify();
 } else {
