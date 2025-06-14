@@ -59,7 +59,7 @@ if (strtoupper($response) === 'Y') {
         }
     }
 
-    // Run migrate:reset
+    // Reset the migrations (only if you really want to drop all tables and re-run)
     echo "Resetting migrations...\n";
     Artisan::call('migrate:reset');
     echo "Migrations have been reset.\n";
