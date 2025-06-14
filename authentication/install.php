@@ -136,14 +136,23 @@ function installFortify()
         exit(1);
     }
 
-    // Clear the config cache
+    // Clear the config cache to make sure the service provider is loaded
+    echo "Clearing config cache...\n";
     Artisan::call('config:clear');
 
     // Clear application cache to ensure everything is up-to-date
+    echo "Clearing application cache...\n";
     Artisan::call('cache:clear');
 
     // Add a small delay to ensure everything is fully loaded
-    sleep(1);
+    sleep(2);
+
+    // Check if 'fortify:install' command exists
+    $commands = Artisan::all();
+    if (!isset($commands['fortify:install'])) {
+        echo "Error: 'fortify:install' command does not exist. Please check the service provider registration.\n";
+        exit(1);
+    }
 
     // Run fortify:install
     echo "Running fortify:install...\n";
