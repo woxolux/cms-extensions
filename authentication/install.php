@@ -3,29 +3,37 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the list of required migration files that should already exist in the database
-$requiredMigrations = [
-    'create_users_table.php',
-    'create_cache_table.php',
-    'create_jobs_table.php',
-    'add_two_factor_columns_to_users_table.php',
+// Define the suffixes for the migrations we need to check (for example)
+$requiredMigrationSuffixes = [
+    '_add_two_factor_columns_to_users_table',
+    '_create_users_table',
+    '_create_cache_table',
+    '_create_jobs_table',
 ];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if all required migrations are already applied
-$missingMigrations = array_diff($requiredMigrations, $appliedMigrations);
+// Check if all required migrations (based on suffixes) are already applied
+$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+    foreach ($appliedMigrations as $migration) {
+        // Check if the migration ends with the required suffix
+        if (substr($migration, -strlen($suffix)) === $suffix) {
+            return false;  // Migration with the required suffix exists
+        }
+    }
+    return true;  // Migration with the required suffix is missing
+});
 
+// If no migrations are missing, skip installation
 if (empty($missingMigrations)) {
     echo "Required migrations have already been applied.\n";
-    
-    // Ask user if they want to reset migrations
+
+    // Ask user if they want to reset the migrations
     echo "Do you want to reset the migrations? (Y/N): ";
     $response = trim(fgets(STDIN));  // Read user input
     
