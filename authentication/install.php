@@ -3,7 +3,9 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
+// Start installation
 echo "Running Fortify installation...\n";
 
 // Step 1: Install Fortify via Composer
