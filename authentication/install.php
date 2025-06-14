@@ -18,18 +18,18 @@ if ($status !== 0) {
     echo "Fortify installed successfully via Composer.\n";
 }
 
-// Step 2: Ensure the Fortify service provider is registered in config/app.php
+// Step 2: Ensure the Fortify service provider is registered in `config/app.php`
 echo "Registering Fortify service provider...\n";
 $serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
 
-// Get the path to the config/app.php file
+// Get the path to the `config/app.php` file
 $appConfigPath = base_path('config/app.php');
 
 // Ensure the service provider is registered
 if (File::exists($appConfigPath)) {
     $configContents = File::get($appConfigPath);
     if (strpos($configContents, $serviceProvider) === false) {
-        // Add the service provider to the providers array
+        // Add the service provider to the `providers` array
         $configContents = preg_replace(
             "/'providers' => \[.*\],/s",
             "'providers' => [\n        $serviceProvider,\n    ],",
@@ -61,37 +61,7 @@ try {
     exit(1);
 }
 
-// Step 5: Set up views and controllers (custom implementation)
-echo "Copying custom view files...\n";
-
-// Define the path for the extension view files (assuming they are in the extension's resources/views folder)
-$extensionViewsPath = base_path('extensions/authentication/resources/views');
-$viewsTargetPath = resource_path('views');
-
-// Ensure the views directory exists
-if (File::exists($extensionViewsPath)) {
-    File::copyDirectory($extensionViewsPath, $viewsTargetPath);
-    echo "Custom view files copied successfully.\n";
-} else {
-    echo "No custom view files found in the extension folder.\n";
-}
-
-// Step 6: Set up controllers (custom implementation)
-echo "Copying custom controllers...\n";
-
-// Define the path for the extension controllers (assuming they are in the extension's app/Http/Controllers folder)
-$extensionControllersPath = base_path('extensions/authentication/app/Http/Controllers');
-$controllersTargetPath = app_path('Http/Controllers');
-
-// Ensure the controllers directory exists
-if (File::exists($extensionControllersPath)) {
-    File::copyDirectory($extensionControllersPath, $controllersTargetPath);
-    echo "Custom controllers copied successfully.\n";
-} else {
-    echo "No custom controllers found in the extension folder.\n";
-}
-
-// Step 7: Clean up temporary installation files (if any)
+// Step 5: Clean up temporary installation files (if any)
 echo "Cleaning up temporary installation files...\n";
 // Add any cleanup logic you need here, for example deleting temporary files or directories
 $installTempPath = storage_path('app/private/cms-extensions-main');
@@ -102,5 +72,5 @@ if (File::exists($installTempPath)) {
     echo "No temporary installation files to clean up.\n";
 }
 
-// Step 8: Inform the user that the installation is complete
-echo "Authentication extension installed successfully.\n"; 
+// Step 6: Inform the user that the installation is complete
+echo "Fortify installation completed successfully.\n";
