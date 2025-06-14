@@ -42,7 +42,24 @@ echo "Do you want to reset the migrations? (Y/N): ";
 $response = trim(fgets(STDIN));  // Read user input
 
 if (strtoupper($response) === 'Y') {
-    // If user says 'Y', run migrate:reset
+    // If user says 'Y', delete migration files matching '_add_two_factor_columns_to_users_table.php'
+    echo "Deleting Fortify migration files...\n";
+    
+    // Define the path to the migrations directory
+    $migrationPath = database_path('migrations');
+    
+    // Get all files in the migrations folder
+    $files = File::files($migrationPath);
+    
+    // Loop through the files and delete those matching the suffix '_add_two_factor_columns_to_users_table.php'
+    foreach ($files as $file) {
+        if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
+            echo "Deleting file: " . $file->getFilename() . "\n";
+            File::delete($file);  // Delete the file
+        }
+    }
+
+    // Run migrate:reset
     echo "Resetting migrations...\n";
     Artisan::call('migrate:reset');
     echo "Migrations have been reset.\n";
