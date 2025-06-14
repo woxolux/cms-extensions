@@ -1,38 +1,75 @@
 <?php
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 
-echo "Installing Authentication Extension...\n";
+echo "Running Fortify installation...\n";
 
-// Check if Fortify is installed
-if (!class_exists(\Laravel\Fortify\FortifyServiceProvider::class)) {
-    echo "Installing Fortify...\n";
-    
-    // Run composer command to install Fortify via shell_exec()
-    $composerInstall = shell_exec('composer require laravel/fortify');
-    
-    // Check for errors in composer install
-    if ($composerInstall === null) {
-        echo "Error installing Fortify. Please ensure Composer is installed.\n";
-        exit(1);
+// Step 1: Install Fortify via Composer
+echo "Installing Fortify via Composer...\n";
+exec('composer require laravel/fortify');
+
+// Step 2: Ensure the Fortify service provider is registered in `config/app.php`
+echo "Registering Fortify service provider...\n";
+$serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
+
+// Get the path to the `config/app.php` file
+$appConfigPath = base_path('config/app.php');
+
+// Ensure the service provider is registered
+if (File::exists($appConfigPath)) {
+    $configContents = File::get($appConfigPath);
+    if (strpos($configContents, $serviceProvider) === false) {
+        // Add the service provider to the `providers` array
+        $configContents = preg_replace(
+            "/'providers' => \[.*\],/s",
+            "'providers' => [\n        $serviceProvider,\n    ],",
+            $configContents
+        );
+        File::put($appConfigPath, $configContents);
+        echo "Fortify service provider registered in config/app.php.\n";
+    } else {
+        echo "Fortify service provider is already registered.\n";
     }
-
-    echo "Fortify installed successfully.\n";
+} else {
+    echo "Could not find config/app.php. Please ensure it's in the right location.\n";
+    exit(1);
 }
 
-// Run Fortify install command
-echo "Running Fortify:install...\n";
-Artisan::call('fortify:install');
+// Step 3: Publish Fortify assets, views, and config
+echo "Publishing Fortify assets, views, and config...\n";
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 
-// Run migrations for the authentication extension
-echo "Running migrations...\n";
-Artisan::call('migrate');
+// Step 4: Run the Fortify installation command
+echo "Running fortify:install...\n";
 
-// Publish Fortify views if needed
-echo "Publishing Fortify views...\n";
-Artisan::call('vendor:publish', [
-    '--provider' => 'Laravel\Fortify\FortifyServiceProvider',
-    '--tag' => 'views',
-]);
+// Check if the fortify:install command exists
+if (Artisan::commandExists('fortify:install')) {
+    Artisan::call('fortify:install');
+    echo "Fortify installed successfully.\n";
+} else {
+    echo "The command 'fortify:install' does not exist. Ensure Fortify is properly installed.\n";
+    exit(1);
+}
 
-echo "Authentication installation completed successfully.\n";
+// Step 5: Set up views and controllers (custom implementation)
+// Add any additional installation steps you need, such as copying custom views or controllers.
+// Example:
+echo "Copying custom view files...\n";
+
+// Define the path for the extension view files (assuming they are in the extension's `resources/views` folder)
+$extensionViewsPath = base_path('extensions/authentication/resources/views');
+$viewsTargetPath = resource_path('views');
+
+// Ensure the views directory exists
+if (File::exists($extensionViewsPath)) {
+    File::copyDirectory($extensionViewsPath, $viewsTargetPath);
+    echo "Custom view files copied successfully.\n";
+} else {
+    echo "No custom view files found in the extension folder.\n";
+}
+
+// Step 6: Inform the user that the installation is complete
+echo "Authentication extension installed successfully.\n";
