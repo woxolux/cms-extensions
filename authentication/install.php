@@ -71,9 +71,19 @@ if (File::exists($installTempPath)) {
 
 // Step 6: Output the installed version of Fortify (without the asterisk)
 echo "Installed Fortify version: ";
-exec('composer show laravel/fortify | grep versions', $versionOutput);
-$versionOutput = str_replace('* ', '', implode("\n", $versionOutput)); // Remove '*' from version output
-echo $versionOutput . "\n";
+exec('composer show laravel/fortify --latest', $versionOutput);
+$version = '';
+foreach ($versionOutput as $line) {
+    if (strpos($line, 'versions') !== false) {
+        // Extract the version number from the line
+        preg_match('/v(\d+\.\d+\.\d+)/', $line, $matches);
+        if (!empty($matches)) {
+            $version = $matches[0];
+            break;
+        }
+    }
+}
+echo $version . "\n";
 
 // Final message
 echo "Fortify installation process completed.\n";
