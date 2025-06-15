@@ -36,37 +36,25 @@ $missingMigrations = array_diff($fortifyMigrationSuffixes, array_map(function ($
     return null;
 }, $existingMigrations));
 
-// Initialize $response with a default value to avoid undefined errors
-$response = null;  // Default value
+// **Skip the prompt if migrations are already applied**
 
-// **Conditionally show missing migrations message only if migrations are missing**
-if (!empty($missingMigrations)) {
-    echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
-    echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
-} else {
-    // Migrations are already applied, prompt for reset option
+echo "Checking if Fortify migrations are already applied...\n";
+$migrationsApplied = !empty($existingMigrations);
+
+if ($migrationsApplied) {
     echo "Fortify migrations have already been applied.\n";
-    echo "Do you want to reset and apply the migrations again? (Y/N): ";
+    // Skip the migration prompt
+} else {
+    echo "Fortify migrations are missing.\n";
+    echo "Do you want to apply the migrations now? (Y/N): ";
     $response = strtoupper(trim(fgets(STDIN)));
 
     if ($response === 'Y') {
-        // Warning: All data will be lost when using `migrate:fresh`
-        echo "Warning: This will reset ALL data and drop all tables in your database!\n";
-        echo "Are you sure you want to continue? (Y/N): ";
-        $confirm = strtoupper(trim(fgets(STDIN)));
-
-        if ($confirm === 'Y') {
-            echo "Running migrate:fresh to drop all tables and reapply migrations...\n";
-
-            // Run the fresh migrations (this will drop all tables and recreate them)
-            Artisan::call('migrate:fresh');
-            echo "Database has been reset and all migrations have been reapplied.\n";
-        } else {
-            echo "Migration reset aborted. Skipping reset...\n";
-            exit(0);
-        }
+        echo "Running migrations...\n";
+        Artisan::call('migrate'); // Apply the migrations
+        echo "Migrations applied successfully.\n";
     } elseif ($response === 'N') {
-        echo "Skipping Fortify migration reset...\n";
+        echo "Skipping migration...\n";
     } else {
         echo "Invalid response. Exiting...\n";
         exit(1);
@@ -101,21 +89,6 @@ if (!$fortifyInstalled) {
     echo "Fortify is already installed.\n";
 }
 
-// **Skip composer install if Fortify is installed and migrations were not reset**
-if ($response !== 'N') {
-    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
-    exec('composer install', $composerOutput, $status);
-
-    if ($status !== 0) {
-        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
-        echo implode("\n", $composerOutput) . "\n";
-    } else {
-        echo "Composer dependencies and autoloader verified.\n";
-    }
-} else {
-    echo "Skipping Composer install. Dependencies and autoloader are up-to-date.\n";
-}
-
 // Clear and optimize Laravel's internal service cache and config cache
 echo "Clearing and optimizing Laravel service cache...\n";
 Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
@@ -124,20 +97,16 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 echo "Laravel caches cleared and optimized.\n";
 
-// **Critical change:** Skip fortify:install if migrations are not being reset
-if ($response !== 'N') {
-    echo "Running fortify:install in a separate Artisan process...\n";
-    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
-    exec($fortifyInstallCommand, $execOutput, $execStatus);
+// **Skip fortify:install if migrations are not being reset**
+echo "Running fortify:install...\n";
+$fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-    if ($execStatus !== 0) {
-        Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
-        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
-        exit(1);
-    } else {
-        echo "Fortify installation command executed successfully in separate process.\n";
-        echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
-    }
+if ($execStatus !== 0) {
+    Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
+    echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
+    exit(1);
 } else {
-    echo "Skipping fortify:install command.\n";
+    echo "Fortify installation command executed successfully in separate process.\n";
+    echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
 }
