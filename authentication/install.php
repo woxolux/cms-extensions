@@ -111,7 +111,7 @@ if (!$fortifyMigrationExists) {
     }
 
     // **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
-    if ($response === 'N' or 'E') {
+    if ($response === 'N') {
         $extensionFolder = storage_path('private/extensions');
 
         // Check if the folder exists, then delete it
