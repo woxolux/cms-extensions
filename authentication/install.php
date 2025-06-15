@@ -8,7 +8,9 @@ echo "Checking if Fortify is installed via Composer...\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
 
-if ($status !== 0) {
+$fortifyInstalled = $status === 0;
+
+if (!$fortifyInstalled) {
     echo "Fortify is not installed. Installing Fortify via Composer...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
 
@@ -60,46 +62,50 @@ if (!empty($missingMigrations)) {
     echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
     echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
 } else {
-    // Migrations are already applied, prompt for reset option
-    echo "Fortify migrations have already been applied.\n";
-    echo "Do you want to reset and apply the migrations again? (Y/N): ";
-    $response = strtoupper(trim(fgets(STDIN)));
+    // If migrations exist, prompt to reset migrations even if Fortify is installed
+    if ($fortifyInstalled) {
+        echo "Fortify migrations have already been applied.\n";
+        echo "Do you want to reset and apply the migrations again? (Y/N): ";
+        $response = strtoupper(trim(fgets(STDIN)));
 
-    if ($response === 'Y') {
-        echo "Deleting Fortify migration files...\n";
+        if ($response === 'Y') {
+            echo "Deleting Fortify migration files...\n";
 
-        // Loop through the files and delete ONLY Fortify-related migration files
-        foreach ($files as $file) {
-            foreach ($fortifyMigrationSuffixes as $suffix) {
-                if (strpos($file->getFilename(), $suffix) !== false) {
-                    echo "Deleting file: " . $file->getFilename() . "\n";
-                    File::delete($file);  // Delete the file
+            // Loop through the files and delete ONLY Fortify-related migration files
+            foreach ($files as $file) {
+                foreach ($fortifyMigrationSuffixes as $suffix) {
+                    if (strpos($file->getFilename(), $suffix) !== false) {
+                        echo "Deleting file: " . $file->getFilename() . "\n";
+                        File::delete($file);  // Delete the file
+                    }
                 }
             }
+
+            // Reset migrations
+            echo "Resetting migrations...\n";
+            Artisan::call('migrate:reset');
+            echo "Migrations have been reset.\n";
+
+            // Run migrations again
+            echo "Running migrations...\n";
+            Artisan::call('migrate');
+            echo "Migrations have been successfully reapplied.\n";
+        } elseif ($response === 'N') {
+            echo "Skipping Fortify migration reset...\n";
+        } else {
+            echo "Invalid response. Exiting...\n";
+            exit(1);
         }
-
-        // Reset migrations
-        echo "Resetting migrations...\n";
-        Artisan::call('migrate:reset');
-        echo "Migrations have been reset.\n";
-
-        // Run migrations again
-        echo "Running migrations...\n";
-        Artisan::call('migrate');
-        echo "Migrations have been successfully reapplied.\n";
-    } elseif ($response === 'N') {
-        echo "Skipping Fortify migration reset...\n";
-    } else {
-        echo "Invalid response. Exiting...\n";
-        exit(1);
     }
 }
 
-// Always proceed to publish Fortify assets, views, and config
-echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+// Only proceed to publish Fortify assets, views, and config if Fortify was just installed or migrations are being reset
+if (!$fortifyInstalled || $response === 'Y') {
+    echo "Publishing Fortify assets, views, and config...\n";
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+}
 
 // **Skip composer install if Fortify is installed and migrations were not reset**
 if ($response !== 'N') {
@@ -125,7 +131,7 @@ Artisan::call('view:clear');     // Clear view cache
 echo "Laravel caches cleared and optimized.\n";
 
 // **Critical change:** Skip fortify:install if migrations are not being reset
-if ($response !== 'N') {
+if ($response !== 'N' && !$fortifyInstalled) {
     echo "Running fortify:install in a separate Artisan process...\n";
     $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
     exec($fortifyInstallCommand, $execOutput, $execStatus);
