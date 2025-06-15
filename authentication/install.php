@@ -7,155 +7,155 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-/**
- * Deletes Fortify-related migration files from the database/migrations directory.
- */
-function deleteFortifyMigrations()
-{
-    echo "Deleting Fortify-related migration files...\n";
-    $migrationPath = database_path('migrations');
-    $files = File::files($migrationPath);
-    foreach ($files as $file) {
-        if (strpos($file->getFilename(), '_create_two_factor_authentication_tables.php') !== false ||
-            strpos(basename($file->getFilename()), '_add_two_factor_columns_to_users_table.php') !== false) {
-            echo "Deleting file: " . $file->getFilename() . "\n";
-            File::delete($file);
-        }
-    }
-}
-
-// Function to handle Fortify installation
-function installFortify()
-{
-    echo "Ensuring Fortify is installed via Composer...\n";
-    $composerCommand = 'composer';
-
-    // Check if laravel/fortify is already in composer.json
-    $composerJsonPath = base_path('composer.json');
-    if (!File::exists($composerJsonPath)) {
-        echo "Error: composer.json not found at " . $composerJsonPath . "\n";
-        exit(1);
-    }
-
-    $composerJsonContent = file_get_contents($composerJsonPath);
-    $composerJson = json_decode($composerJsonContent, true);
-
-    $fortifyAlreadyInComposerJson = isset($composerJson['require']['laravel/fortify']) ||
-                                    isset($composerJson['require-dev']['laravel/fortify']);
-
-    if (!$fortifyAlreadyInComposerJson) {
-        echo "Fortify not found in composer.json. Requiring laravel/fortify...\n";
-        $composerOutput = [];
-        // The 'require' command will add to composer.json and automatically run update/install
-        exec("{$composerCommand} require laravel/fortify", $composerOutput, $status);
-
-        if ($status !== 0) {
-            echo "Error: Requiring laravel/fortify failed.\n";
-            echo implode("\n", $composerOutput) . "\n";
-            exit(1);
-        } else {
-            echo "laravel/fortify successfully added to composer.json and packages installed/updated.\n";
-        }
-    } else {
-        echo "laravel/fortify is already listed in composer.json.\n";
-    }
-
-    // Always run 'composer install' to ensure all packages (including dev dependencies like Collision)
-    // are correctly installed and the autoloader is fully consistent.
-    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
-    $composerOutput = [];
-    exec("{$composerCommand} install", $composerOutput, $status);
-    if ($status !== 0) {
-        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
-        echo implode("\n", $composerOutput) . "\n";
-        // Do not exit here, allow subsequent steps to attempt recovery if possible
-    } else {
-        echo "Composer dependencies and autoloader verified.\n";
-    }
-
-    // Clear and optimize Laravel's internal service cache and config cache.
-    // This forces Laravel to re-read its service provider manifest and compiled services,
-    // which should pick up Fortify's service provider and resolve class loading issues.
-    echo "Clearing and optimizing Laravel service cache...\n";
-    Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
-    Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
-    Artisan::call('cache:clear');    // Clear application cache
-    Artisan::call('view:clear');     // Clear view cache
-    echo "Laravel caches cleared and optimized.\n";
-
-    // CRUCIAL CHANGE: Run fortify:install in a separate PHP process.
-    // This ensures a fresh Laravel application instance is booted,
-    // which will correctly recognize the newly installed Fortify service provider.
-    echo "Running fortify:install in a separate Artisan process...\n";
-    // Use PHP_BINARY for robustness to find the PHP executable
-    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
-    $execOutput = [];
-    $execStatus = 0;
-    exec($fortifyInstallCommand, $execOutput, $execStatus);
-
-    if ($execStatus !== 0) {
-        Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
-        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
-        exit(1);
-    } else {
-        echo "Fortify installation command executed successfully in separate process.\n";
-        echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
-    }
-}
-
-// Define the suffix for the main Fortify migration
-$fortifyMigrationSuffix = '_create_two_factor_authentication_tables';
-
-// IMPORTANT: Reconnect to the database to ensure the latest state is read.
-DB::reconnect();
+// Define the suffixes for the migrations we need to check
+$requiredMigrationSuffixes = [
+    '_add_two_factor_columns_to_users_table',
+    '_create_users_table',
+    '_create_cache_table',
+    '_create_jobs_table',
+];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if the main Fortify migration is applied
-$isFortifyMigrationApplied = false;
-foreach ($appliedMigrations as $migration) {
-    if (str_ends_with($migration, $fortifyMigrationSuffix)) {
-        $isFortifyMigrationApplied = true;
-        break;
+// Check if all required migrations (based on suffixes) are already applied
+$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+    foreach ($appliedMigrations as $migration) {
+        if (substr($migration, -strlen($suffix)) === $suffix) {
+            return false;
+        }
     }
+    return true;
+});
+
+// If migrations are missing, proceed to installation
+if (!empty($missingMigrations)) {
+    echo "Required migrations are missing. Proceeding with Fortify installation...\n";
+} else {
+    echo "Required migrations have already been applied.\n";
 }
 
-// Adjusted logic for migration check and handling without interactive prompt
-if ($isFortifyMigrationApplied) {
-    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') has already been applied.\n";
-    echo "Since this script is running non-interactively, automatically resetting and re-installing Fortify's migrations.\n";
+// Ask user if they want to reset migrations
+echo "Do you want to reset the migrations? (Y/N): ";
+$response = trim(fgets(STDIN));
 
-    // Perform reset and reinstall steps automatically
-    deleteFortifyMigrations();
+if (strtoupper($response) === 'Y') {
+    echo "Deleting Fortify migration files...\n";
+    
+    // Define the path to the migrations directory
+    $migrationPath = database_path('migrations');
+    
+    // Get all files in the migrations folder
+    $files = File::files($migrationPath);
+    
+    // Loop through the files and delete those matching the suffix
+    foreach ($files as $file) {
+        if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
+            echo "Deleting file: " . $file->getFilename() . "\n";
+            File::delete($file);  // Delete the file
+        }
+    }
+
+    // Reset migrations
+    echo "Resetting migrations...\n";
     Artisan::call('migrate:reset');
     echo "Migrations have been reset.\n";
+
+    // **Run migrate after reset** to reapply all migrations
+    echo "Running migrations...\n";
     Artisan::call('migrate');
     echo "Migrations have been successfully reapplied.\n";
-    installFortify(); // Call installFortify again to ensure publishing
-} else {
-    // If the Fortify migration is not applied, proceed to install it without asking for reset first.
-    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') is missing. Proceeding with Fortify installation.\n";
-    installFortify();
-}
 
+    // Proceed with Fortify installation
+    echo "Proceeding with Fortify installation...\n";
+    installFortify();
+} elseif (strtoupper($response) === 'N') {
+    echo "Skipping Fortify installation...\n";
+} else {
+    echo "Invalid response. Exiting...\n";
+    exit(1);
+}
 
 // Always proceed to publish Fortify assets, views, and config
 echo "Publishing Fortify assets, views, and config...\n";
-try {
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'fortify-config', '--force' => true]);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'fortify-views', '--force' => true]);
-    // The 'assets' tag is not typical for Fortify. It usually publishes config, views, and actions.
-    // If you have custom assets for Fortify, you might need a different tag or manual copy.
-    // Assuming 'fortify-actions' if you meant publish actions.
-    // Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'fortify-actions']);
-    echo "Fortify config and views published successfully.\n";
-} catch (Exception $e) {
-    Log::error("Error publishing Fortify assets: " . $e->getMessage());
-    echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
-}
-
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 
 // Final message
 echo "Fortify installation process completed.\n";
 
+// Function to handle Fortify installation
+function installFortify()
+{
+    // Check if Fortify is already installed (via Composer)
+    echo "Checking if Fortify is installed via Composer...\n";
+    $composerOutput = [];
+    exec('composer show laravel/fortify', $composerOutput, $status);
+
+    if ($status !== 0) {
+        echo "Fortify is not installed. Installing Fortify via Composer...\n";
+        exec('composer require laravel/fortify', $composerOutput, $status);
+
+        if ($status !== 0) {
+            echo "Error: Fortify installation failed via Composer.\n";
+            echo implode("\n", $composerOutput);
+            exit(1);
+        } else {
+            echo "Fortify installed successfully via Composer.\n";
+        }
+    } else {
+        echo "Fortify is already installed.\n";
+    }
+
+    // Register the service provider in config/app.php if not already registered
+    echo "Registering Fortify service provider...\n";
+    $serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
+    $appConfigPath = base_path('config/app.php');
+
+    if (File::exists($appConfigPath)) {
+        $configContents = File::get($appConfigPath);
+        if (strpos($configContents, $serviceProvider) === false) {
+            $configContents = preg_replace(
+                "/'providers' => \[.*\],/s",
+                "'providers' => [\n    " . $serviceProvider . ",\n    ],",
+                $configContents
+            );
+            File::put($appConfigPath, $configContents);
+            echo "Fortify service provider registered in config/app.php.\n";
+        } else {
+            echo "Fortify service provider is already registered.\n";
+        }
+    } else {
+        echo "Could not find config/app.php. Please ensure it's in the right location.\n";
+        exit(1);
+    }
+
+    // Clear the config cache to make sure the service provider is loaded
+    echo "Clearing config cache...\n";
+    Artisan::call('config:clear');
+
+    // Clear application cache to ensure everything is up-to-date
+    echo "Clearing application cache...\n";
+    Artisan::call('cache:clear');
+
+    // Add a small delay to ensure everything is fully loaded
+    sleep(2);
+
+    // Check if the 'fortify:install' command exists before running it
+    $commands = Artisan::all();
+    if (!isset($commands['fortify:install'])) {
+        echo "Error: 'fortify:install' command does not exist. Please check the service provider registration.\n";
+        exit(1);
+    }
+
+    // Run fortify:install
+    echo "Running fortify:install...\n";
+    try {
+        Artisan::call('fortify:install');
+        echo "Fortify installation completed successfully.\n";
+    } catch (Exception $e) {
+        echo "Error running fortify:install: " . $e->getMessage() . "\n";
+        exit(1);
+    }
+}
