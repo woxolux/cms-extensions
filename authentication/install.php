@@ -52,9 +52,12 @@ if ($fortifyInstalled) {
     }
 }
 
-// **Skip fortify:install if migration file already exists**
+// **Run fortify:install if migration file does not exist (first run)**
 if (!$fortifyMigrationExists) {
-    echo "\033[34mRunning fortify:install...\033[0m\n";
+    // Automatically proceed to migrate and fresh install on first run
+    echo "\033[34mRunning fortify:install and fresh migration...\033[0m\n";
+    
+    // Run fortify:install
     $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
     exec($fortifyInstallCommand, $execOutput, $execStatus);
 
@@ -65,31 +68,11 @@ if (!$fortifyMigrationExists) {
     } else {
         echo "\033[34mLaravel Fortify installation command executed successfully.\033[0m\n";
     }
-} else {
-    echo "\033[34mMigration files already exist. Do you want to reset and reapply the migrations?\033[0m\n";
-}
-
-// **WARNING message in red**
-echo "\033[31mWARNING! RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m\n"; 
-
-// Ask user if they want to reset the database (clear all data)
-echo "\033[38;5;214mDo you want to erase all data, including tables and relationships? \033[0m"; // Orange question
-
-// Color Y = Yes in green, N = No in red
-echo "\033[32m(Y = Yes)\033[0m / \033[31m(N = No)\033[0m: ";
-
-$response = strtoupper(trim(fgets(STDIN)));
-
-// Handle the user's response with color-coded output
-if ($response === 'Y') {
-    // If user agrees to reset database, drop all tables and reapply migrations
+    
+    // Automatically perform a fresh migration (since no migrations exist)
     echo "\033[34mRunning migrate:fresh to drop all tables and reapply migrations...\033[0m\n";
     Artisan::call('migrate:fresh');
     echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
-} elseif ($response === 'N') {
-} else {
-    echo "\033[34mInvalid response. Exiting...\033[0m\n";
-    exit(1);
 }
 
 // **Publishing Fortify assets, views, and config only if Fortify is installed**
