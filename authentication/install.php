@@ -78,64 +78,109 @@ if (strtoupper($response) === 'Y') {
     echo "Running migrations...\n";
     Artisan::call('migrate');
     echo "Migrations reapplied.\n";
+
+    // Continue to publish Fortify assets, views, and config
+    echo "Publishing Fortify assets, views, and config...\n";
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+
+    // Check if Fortify is installed via Composer
+    echo "Checking if Fortify is installed via Composer...\n";
+    $composerOutput = [];
+    exec('composer show laravel/fortify', $composerOutput, $status);
+
+    if ($status !== 0) {
+        echo "Fortify not installed. Installing via Composer...\n";
+        exec('composer require laravel/fortify', $composerOutput, $status);
+        if ($status !== 0) {
+            echo "Error installing Fortify.\n" . implode("\n", $composerOutput);
+            exit(1);
+        } else {
+            echo "Fortify installed successfully.\n";
+        }
+    } else {
+        echo "Fortify is already installed.\n";
+    }
+
+    // Run 'composer install' to ensure dependencies and autoloader are up-to-date
+    echo "Running 'composer install'...\n";
+    exec('composer install', $composerOutput, $status);
+    if ($status !== 0) {
+        echo "Warning: 'composer install' failed.\n" . implode("\n", $composerOutput);
+    } else {
+        echo "'composer install' completed.\n";
+    }
+
+    // Clear and optimize cache
+    echo "Clearing caches...\n";
+    Artisan::call('optimize:clear');
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('view:clear');
+    echo "Caches cleared.\n";
+
+    // Run 'fortify:install' in separate process
+    echo "Running 'fortify:install'...\n";
+    $cmd = PHP_BINARY . ' artisan fortify:install --ansi';
+    exec($cmd, $output, $status);
+    if ($status !== 0) {
+        echo "Error running 'fortify:install'.\n" . implode("\n", $output);
+        exit(1);
+    } else {
+        echo "'fortify:install' executed successfully.\n";
+        echo implode("\n", $output);
+    }
+
+    echo "Fortify installation process completed.\n";
+
 } elseif (strtoupper($response) === 'N') {
+    // Skip migration reset but still proceed with Fortify installation (without creating migrations)
     echo "Skipping migration reset.\n";
+
+    // Continue to publish Fortify assets, views, and config
+    echo "Publishing Fortify assets, views, and config...\n";
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+
+    // Check if Fortify is installed via Composer
+    echo "Checking if Fortify is installed via Composer...\n";
+    $composerOutput = [];
+    exec('composer show laravel/fortify', $composerOutput, $status);
+
+    if ($status !== 0) {
+        echo "Fortify not installed. Installing via Composer...\n";
+        exec('composer require laravel/fortify', $composerOutput, $status);
+        if ($status !== 0) {
+            echo "Error installing Fortify.\n" . implode("\n", $composerOutput);
+            exit(1);
+        } else {
+            echo "Fortify installed successfully.\n";
+        }
+    } else {
+        echo "Fortify is already installed.\n";
+    }
+
+    // Run 'composer install' to ensure dependencies and autoloader are up-to-date
+    echo "Running 'composer install'...\n";
+    exec('composer install', $composerOutput, $status);
+    if ($status !== 0) {
+        echo "Warning: 'composer install' failed.\n" . implode("\n", $composerOutput);
+    } else {
+        echo "'composer install' completed.\n";
+    }
+
+    // Clear and optimize cache
+    echo "Clearing caches...\n";
+    Artisan::call('optimize:clear');
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('view:clear');
+    echo "Caches cleared.\n";
+
+    echo "Fortify installation process completed.\n";
 } else {
     echo "Invalid response. Exiting...\n";
     exit(1);
 }
-
-// Publish Fortify assets, views, config
-echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
-
-// Check if Fortify is installed via Composer
-echo "Checking if Fortify is installed via Composer...\n";
-$composerOutput = [];
-exec('composer show laravel/fortify', $composerOutput, $status);
-
-if ($status !== 0) {
-    echo "Fortify not installed. Installing via Composer...\n";
-    exec('composer require laravel/fortify', $composerOutput, $status);
-    if ($status !== 0) {
-        echo "Error installing Fortify.\n" . implode("\n", $composerOutput);
-        exit(1);
-    } else {
-        echo "Fortify installed successfully.\n";
-    }
-} else {
-    echo "Fortify is already installed.\n";
-}
-
-// Run 'composer install' to ensure dependencies and autoloader are up-to-date
-echo "Running 'composer install'...\n";
-exec('composer install', $composerOutput, $status);
-if ($status !== 0) {
-    echo "Warning: 'composer install' failed.\n" . implode("\n", $composerOutput);
-} else {
-    echo "'composer install' completed.\n";
-}
-
-// Clear and optimize cache
-echo "Clearing caches...\n";
-Artisan::call('optimize:clear');
-Artisan::call('config:clear');
-Artisan::call('cache:clear');
-Artisan::call('view:clear');
-echo "Caches cleared.\n";
-
-// Run 'fortify:install' in separate process
-echo "Running 'fortify:install'...\n";
-$cmd = PHP_BINARY . ' artisan fortify:install --ansi';
-exec($cmd, $output, $status);
-if ($status !== 0) {
-    echo "Error running 'fortify:install'.\n" . implode("\n", $output);
-    exit(1);
-} else {
-    echo "'fortify:install' executed successfully.\n";
-    echo implode("\n", $output);
-}
-
-echo "Fortify installation process completed.\n";
