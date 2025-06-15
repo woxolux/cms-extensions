@@ -4,177 +4,228 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 
-echo "Running Fortify installation...\n";
-
-// Define the suffixes for the Fortify-related migrations that we need to check
-$fortifyMigrationSuffixes = [
-    'add_two_factor_columns_to_users_table',
-];
-
-// Get a list of all applied migrations from the database
-$appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
-
-// Check if all required Fortify migrations (based on suffixes) are already applied
-$missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
-    $isMissing = true;
-    foreach ($appliedMigrations as $migration) {
-        // Extract filename from full path
-        $filename = basename($migration);
-
-        // Remove timestamp prefix (first 17 characters: e.g., '2025_06_15_004225_')
-        $migrationName = substr($filename, 17);
-
-        // Remove the '.php' extension
-        $migrationName = str_replace('.php', '', $migrationName);
-
-        // Optional: trim leading underscores if present
-        $migrationName = ltrim($migrationName, '_');
-
-        // Check if the migration name contains the suffix
-        if (strpos($migrationName, $suffix) !== false) {
-            $isMissing = false;
-            break;
-        }
-    }
-    return $isMissing;
-});
-
-// If migrations are missing, proceed to installation
-if (!empty($missingMigrations)) {
-    echo "Required Fortify migrations are missing. Proceeding with installation...\n";
-} else {
-    echo "Fortify migrations are already applied.\n";
-}
-
-// Prompt user for reset
-echo "Do you want to reset and reapply the missing migrations? (Y/N): ";
-$response = trim(fgets(STDIN));
-
-if (strtoupper($response) === 'Y') {
-    echo "Deleting Fortify migration files...\n";
+class FortifyInstaller
+{
+    // Define the suffixes for the Fortify-related migrations that we need to check
+    private $fortifyMigrationSuffixes = [
+        'add_two_factor_columns_to_users_table',
+    ];
 
     // Path to migrations folder
-    $migrationPath = database_path('migrations');
+    private $migrationPath;
 
-    // Get all migration files
-    $files = File::files($migrationPath);
+    public function __construct()
+    {
+        $this->migrationPath = database_path('migrations');
+    }
+
+    // Run the installation process
+    public function install()
+    {
+        $this->echoOutput("Running Fortify installation...");
+
+        $appliedMigrations = $this->getAppliedMigrations();
+        $missingMigrations = $this->getMissingMigrations($appliedMigrations);
+
+        // Proceed with necessary steps based on missing migrations
+        if (!empty($missingMigrations)) {
+            $this->echoOutput("Required Fortify migrations are missing. Proceeding with installation...");
+            $this->handleMissingMigrations($missingMigrations);
+        } else {
+            $this->echoOutput("Fortify migrations are already applied.");
+        }
+
+        // Publish Fortify assets, views, config
+        $this->publishFortifyAssets();
+
+        // Install Fortify if not already installed
+        $this->installFortify();
+
+        // Run 'composer install' to ensure dependencies and autoloader are up-to-date
+        $this->runComposerInstall();
+
+        // Clear caches
+        $this->clearCaches();
+
+        // Run 'fortify:install' command
+        $this->runFortifyInstallCommand();
+
+        $this->echoOutput("Fortify installation process completed.");
+    }
+
+    // Get applied migrations from the database
+    private function getAppliedMigrations()
+    {
+        $this->echoOutput("Getting list of applied migrations from the database...");
+
+        return DB::table('migrations')->pluck('migration')->toArray();
+    }
+
+    // Check for missing Fortify migrations
+    private function getMissingMigrations($appliedMigrations)
+    {
+        $this->echoOutput("Checking for missing Fortify migrations...");
+
+        return array_filter($this->fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+            $isMissing = true;
+            $this->echoOutput("Checking for suffix: '$suffix'");
+
+            foreach ($appliedMigrations as $migration) {
+                $this->echoOutput("Processing migration filename: $migration");
+
+                $migrationName = $this->extractMigrationName($migration);
+
+                if (strpos($migrationName, $suffix) !== false) {
+                    $this->echoOutput("Match found for suffix '$suffix' in migration '$migration'");
+                    $isMissing = false;
+                    break;
+                }
+            }
+
+            return $isMissing;
+        });
+    }
+
+    // Extract migration name after removing timestamp and extension
+    private function extractMigrationName($migration)
+    {
+        $filename = basename($migration);
+        $migrationName = substr($filename, 17); // Remove timestamp (assumed length)
+        return str_replace('.php', '', ltrim($migrationName, '_')); // Remove extension and trim underscores
+    }
+
+    // Handle missing migrations
+    private function handleMissingMigrations($missingMigrations)
+    {
+        $this->echoOutput("Deleting Fortify migration files...");
+        $this->deleteFortifyMigrationFiles();
+
+        // Reset migrations and reapply them
+        $this->resetMigrations();
+        $this->runMigrations();
+    }
 
     // Delete only Fortify-related migration files
-    foreach ($files as $file) {
-        foreach ($fortifyMigrationSuffixes as $suffix) {
-            if (strpos($file->getFilename(), $suffix) !== false) {
-                echo "Deleting file: " . $file->getFilename() . "\n";
-                File::delete($file);
+    private function deleteFortifyMigrationFiles()
+    {
+        $files = File::files($this->migrationPath);
+
+        foreach ($files as $file) {
+            foreach ($this->fortifyMigrationSuffixes as $suffix) {
+                if (strpos($file->getFilename(), $suffix) !== false) {
+                    $this->echoOutput("Deleting file: " . $file->getFilename());
+                    File::delete($file);
+                }
             }
         }
     }
 
     // Reset migrations
-    echo "Resetting migrations...\n";
-    Artisan::call('migrate:reset');
-    echo "Migrations have been reset.\n";
+    private function resetMigrations()
+    {
+        $this->echoOutput("Resetting migrations...");
+        Artisan::call('migrate:reset');
+        $this->echoOutput("Migrations have been reset.");
+    }
 
     // Run migrations again
-    echo "Running migrations...\n";
-    Artisan::call('migrate');
-    echo "Migrations reapplied.\n";
+    private function runMigrations()
+    {
+        $this->echoOutput("Running migrations...");
+        Artisan::call('migrate');
+        $this->echoOutput("Migrations reapplied.");
+    }
 
-    // Continue to publish Fortify assets, views, and config
-    echo "Publishing Fortify assets, views, and config...\n";
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+    // Publish Fortify assets, views, and config
+    private function publishFortifyAssets()
+    {
+        $this->echoOutput("Publishing Fortify assets, views, and config...");
+        Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+        Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+        Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+    }
 
-    // Check if Fortify is installed via Composer
-    echo "Checking if Fortify is installed via Composer...\n";
-    $composerOutput = [];
-    exec('composer show laravel/fortify', $composerOutput, $status);
+    // Install Fortify if it's not already installed
+    private function installFortify()
+    {
+        $this->echoOutput("Checking if Fortify is installed via Composer...");
 
-    if ($status !== 0) {
-        echo "Fortify not installed. Installing via Composer...\n";
-        exec('composer require laravel/fortify', $composerOutput, $status);
+        exec('composer show laravel/fortify', $composerOutput, $status);
+
         if ($status !== 0) {
-            echo "Error installing Fortify.\n" . implode("\n", $composerOutput);
-            exit(1);
+            $this->echoOutput("Fortify not installed. Installing via Composer...");
+            exec('composer require laravel/fortify', $composerOutput, $status);
+            if ($status !== 0) {
+                $this->echoError("Error installing Fortify.", $composerOutput);
+            } else {
+                $this->echoOutput("Fortify installed successfully.");
+            }
         } else {
-            echo "Fortify installed successfully.\n";
+            $this->echoOutput("Fortify is already installed.");
         }
-    } else {
-        echo "Fortify is already installed.\n";
     }
 
-    // Run 'composer install' to ensure dependencies and autoloader are up-to-date
-    echo "Running 'composer install'...\n";
-    exec('composer install', $composerOutput, $status);
-    if ($status !== 0) {
-        echo "Warning: 'composer install' failed.\n" . implode("\n", $composerOutput);
-    } else {
-        echo "'composer install' completed.\n";
+    // Run 'composer install' to ensure dependencies are up-to-date
+    private function runComposerInstall()
+    {
+        $this->echoOutput("Running 'composer install'...");
+
+        exec('composer install', $composerOutput, $status);
+
+        if ($status !== 0) {
+            $this->echoWarning("'composer install' failed.", $composerOutput);
+        } else {
+            $this->echoOutput("'composer install' completed.");
+        }
     }
 
-    // Clear and optimize cache
-    echo "Clearing caches...\n";
-    Artisan::call('optimize:clear');
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('view:clear');
-    echo "Caches cleared.\n";
+    // Clear application caches
+    private function clearCaches()
+    {
+        $this->echoOutput("Clearing caches...");
+        Artisan::call('optimize:clear');
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        $this->echoOutput("Caches cleared.");
+    }
 
-    // Run 'fortify:install' in separate process
-    echo "Running 'fortify:install'...\n";
-    $cmd = PHP_BINARY . ' artisan fortify:install --ansi';
-    exec($cmd, $output, $status);
-    if ($status !== 0) {
-        echo "Error running 'fortify:install'.\n" . implode("\n", $output);
+    // Run 'fortify:install' command
+    private function runFortifyInstallCommand()
+    {
+        $this->echoOutput("Running 'fortify:install'...");
+
+        $cmd = PHP_BINARY . ' artisan fortify:install --ansi';
+        exec($cmd, $output, $status);
+
+        if ($status !== 0) {
+            $this->echoError("Error running 'fortify:install'.", $output);
+        } else {
+            $this->echoOutput("'fortify:install' executed successfully.");
+            $this->echoOutput(implode("\n", $output));
+        }
+    }
+
+    // Output messages to the console
+    private function echoOutput($message)
+    {
+        echo $message . "\n";
+    }
+
+    // Output warning messages
+    private function echoWarning($message, $output)
+    {
+        echo "Warning: $message\n" . implode("\n", $output);
+    }
+
+    // Output error messages and exit
+    private function echoError($message, $output)
+    {
+        echo "Error: $message\n" . implode("\n", $output);
         exit(1);
-    } else {
-        echo "'fortify:install' executed successfully.\n";
-        echo implode("\n", $output);
     }
-
-    echo "Fortify installation process completed.\n";
-
-} elseif (strtoupper($response) === 'N') {
-    // Skip migration reset but still proceed with Fortify installation (without creating migrations)
-    echo "Skipping migration reset.\n";
-
-    // Continue to publish Fortify assets, views, and config
-    echo "Publishing Fortify assets, views, and config...\n";
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
-
-    // Check if Fortify is installed via Composer
-    echo "Checking if Fortify is installed via Composer...\n";
-    $composerOutput = [];
-    exec('composer show laravel/fortify', $composerOutput, $status);
-
-    if ($status !== 0) {
-        echo "Fortify not installed. Installing via Composer...\n";
-        exec('composer require laravel/fortify', $composerOutput, $status);
-        if ($status !== 0) {
-            echo "Error installing Fortify.\n" . implode("\n", $composerOutput);
-            exit(1);
-        } else {
-            echo "Fortify installed successfully.\n";
-        }
-    } else {
-        echo "Fortify is already installed.\n";
-    }
-
-    // **Skip composer install** if Fortify is already installed
-    echo "Skipping 'composer install' as Fortify is already installed.\n";
-
-    // Clear and optimize cache
-    echo "Clearing caches...\n";
-    Artisan::call('optimize:clear');
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('view:clear');
-    echo "Caches cleared.\n";
-
-    echo "Fortify installation process completed.\n";
-} else {
-    echo "Invalid response. Exiting...\n";
-    exit(1);
 }
+
+// Create an instance of the installer and run it
+$installer = new FortifyInstaller();
+$installer->install();
