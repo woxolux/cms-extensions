@@ -162,14 +162,8 @@ if (strtoupper($response) === 'Y') {
         echo "Fortify is already installed.\n";
     }
 
-    // Run 'composer install' to ensure dependencies and autoloader are up-to-date
-    echo "Running 'composer install'...\n";
-    exec('composer install', $composerOutput, $status);
-    if ($status !== 0) {
-        echo "Warning: 'composer install' failed.\n" . implode("\n", $composerOutput);
-    } else {
-        echo "'composer install' completed.\n";
-    }
+    // **Skip composer install** if Fortify is already installed
+    echo "Skipping 'composer install' as Fortify is already installed.\n";
 
     // Clear and optimize cache
     echo "Clearing caches...\n";
