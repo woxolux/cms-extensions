@@ -4,6 +4,25 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
+echo "Checking if Fortify is installed via Composer...\n";
+$composerOutput = [];
+exec('composer show laravel/fortify', $composerOutput, $status);
+
+if ($status !== 0) {
+    echo "Fortify is not installed. Installing Fortify via Composer...\n";
+    exec('composer require laravel/fortify', $composerOutput, $status);
+
+    if ($status !== 0) {
+        echo "Error: Fortify installation failed via Composer.\n";
+        echo implode("\n", $composerOutput);
+        exit(1);
+    } else {
+        echo "Fortify installed successfully via Composer.\n";
+    }
+} else {
+    echo "Fortify is already installed.\n";
+}
+
 echo "Running Fortify installation...\n";
 
 // Define the suffixes for the Fortify-related migrations that we need to check
@@ -82,27 +101,21 @@ Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServi
 Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
 Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 
-// Check if Fortify is already installed (via Composer)
-echo "Checking if Fortify is installed via Composer...\n";
-$composerOutput = [];
-exec('composer show laravel/fortify', $composerOutput, $status);
-
-if ($status !== 0) {
-    echo "Fortify is not installed. Installing Fortify via Composer...\n";
-    exec('composer require laravel/fortify', $composerOutput, $status);
+// **Skip composer install if Fortify is installed and migrations were not reset**
+if ($response !== 'N') {
+    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
+    exec('composer install', $composerOutput, $status);
 
     if ($status !== 0) {
-        echo "Error: Fortify installation failed via Composer.\n";
-        echo implode("\n", $composerOutput);
-        exit(1);
+        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
+        echo implode("\n", $composerOutput) . "\n";
     } else {
-        echo "Fortify installed successfully via Composer.\n";
+        echo "Composer dependencies and autoloader verified.\n";
     }
 } else {
-    echo "Fortify is already installed.\n";
+    echo "Skipping Composer install. Dependencies and autoloader are up-to-date.\n";
 }
 
-// **Skip composer install since we no longer check for updates**
 // Clear and optimize Laravel's internal service cache and config cache
 echo "Clearing and optimizing Laravel service cache...\n";
 Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
