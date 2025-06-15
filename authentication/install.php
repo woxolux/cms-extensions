@@ -79,4 +79,62 @@ if (!empty($missingMigrations)) {
 
 // Always proceed to publish Fortify assets, views, and config
 echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'co]()
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+
+// Check if Fortify is already installed (via Composer)
+echo "Checking if Fortify is installed via Composer...\n";
+$composerOutput = [];
+exec('composer show laravel/fortify', $composerOutput, $status);
+
+if ($status !== 0) {
+    echo "Fortify is not installed. Installing Fortify via Composer...\n";
+    exec("composer require laravel/fortify", $composerOutput, $status);
+
+    if ($status !== 0) {
+        echo "Error: Fortify installation failed via Composer.\n";
+        echo implode("\n", $composerOutput);
+        exit(1);
+    } else {
+        echo "Fortify installed successfully via Composer.\n";
+    }
+} else {
+    echo "Fortify is already installed.\n";
+}
+
+// Always run 'composer install' to ensure all packages are correctly installed
+// and the autoloader is fully consistent after any require operations.
+echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
+exec('composer install', $composerOutput, $status);
+
+if ($status !== 0) {
+    echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
+    echo implode("\n", $composerOutput) . "\n";
+} else {
+    echo "Composer dependencies and autoloader verified.\n";
+}
+
+// Clear and optimize Laravel's internal service cache and config cache.
+echo "Clearing and optimizing Laravel service cache...\n";
+Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
+Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
+Artisan::call('cache:clear');    // Clear application cache
+Artisan::call('view:clear');     // Clear view cache
+echo "Laravel caches cleared and optimized.\n";
+
+// CRITICAL CHANGE: Run fortify:install in a separate PHP process.
+// This ensures a fresh Laravel application instance is booted,
+// which will correctly recognize the newly installed Fortify service provider.
+echo "Running fortify:install in a separate Artisan process...\n";
+$fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+exec($fortifyInstallCommand, $execOutput, $execStatus);
+
+if ($execStatus !== 0) {
+    Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
+    echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
+    exit(1);
+} else {
+    echo "Fortify installation command executed successfully in separate process.\n";
+    echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
+}
