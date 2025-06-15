@@ -42,41 +42,39 @@ echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
 if (!empty($missingMigrations)) {
     echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
 } else {
+    // Migrations are already applied, prompt for reset option
     echo "Fortify migrations have already been applied.\n";
-}
+    echo "Do you want to reset and apply the migrations again? (Y/N): ";
+    $response = strtoupper(trim(fgets(STDIN)));
 
-// Prompt user to reset Fortify migrations if required
-echo "Do you want to reset and apply the missing Fortify migrations? (Y/N): ";
-$response = strtoupper(trim(fgets(STDIN)));
+    if ($response === 'Y') {
+        echo "Deleting Fortify migration files...\n";
 
-if ($response === 'Y') {
-    echo "Deleting Fortify migration files...\n";
-
-    // Loop through the files and delete ONLY Fortify-related migration files
-    foreach ($files as $file) {
-        foreach ($fortifyMigrationSuffixes as $suffix) {
-            if (strpos($file->getFilename(), $suffix) !== false) {
-                echo "Deleting file: " . $file->getFilename() . "\n";
-                File::delete($file);  // Delete the file
+        // Loop through the files and delete ONLY Fortify-related migration files
+        foreach ($files as $file) {
+            foreach ($fortifyMigrationSuffixes as $suffix) {
+                if (strpos($file->getFilename(), $suffix) !== false) {
+                    echo "Deleting file: " . $file->getFilename() . "\n";
+                    File::delete($file);  // Delete the file
+                }
             }
         }
+
+        // Reset migrations
+        echo "Resetting migrations...\n";
+        Artisan::call('migrate:reset');
+        echo "Migrations have been reset.\n";
+
+        // Run migrations again
+        echo "Running migrations...\n";
+        Artisan::call('migrate');
+        echo "Migrations have been successfully reapplied.\n";
+    } elseif ($response === 'N') {
+        echo "Skipping Fortify migration reset...\n";
+    } else {
+        echo "Invalid response. Exiting...\n";
+        exit(1);
     }
-
-    // Reset migrations
-    echo "Resetting migrations...\n";
-    Artisan::call('migrate:reset');
-    echo "Migrations have been reset.\n";
-
-    // Run migrations again
-    echo "Running migrations...\n";
-    Artisan::call('migrate');
-    echo "Migrations have been successfully reapplied.\n";
-
-} elseif ($response === 'N') {
-    echo "Skipping Fortify migration reset...\n";
-} else {
-    echo "Invalid response. Exiting...\n";
-    exit(1);
 }
 
 // Always proceed to publish Fortify assets, views, and config
