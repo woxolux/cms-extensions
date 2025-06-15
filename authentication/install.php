@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
-echo "\033[34mRunning Fortify installation...\033[0m\n";
+echo "\033[34mRunning Laravel Fortify installation...\033[0m\n";
 
 // Define the suffixes for the Fortify-related migrations that we need to check
 $fortifyMigrationSuffixes = [
@@ -15,7 +15,7 @@ $fortifyMigrationSuffixes = [
 $migrationPath = database_path('migrations');
 $files = File::files($migrationPath);
 
-// Filter the files that match the Fortify migration suffixes
+// Filter the files that match the Laravel Fortify migration suffixes
 $existingMigrations = [];
 foreach ($files as $file) {
     foreach ($fortifyMigrationSuffixes as $suffix) {
@@ -26,28 +26,28 @@ foreach ($files as $file) {
     }
 }
 
-// Check if Fortify migration already exists
+// Check if Laravel Fortify migration already exists
 $fortifyMigrationExists = !empty($existingMigrations);
 
-// **Check if Fortify is installed via Composer**
-echo "\033[34mChecking if Fortify is installed via Composer...\033[0m\n";
+// **Check if Laravel Fortify is installed via Composer**
+echo "\033[34mChecking if Laravel Fortify is already installed via Composer...\033[0m\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
 
 $fortifyInstalled = $status === 0;
 
 if ($fortifyInstalled) {
-    echo "\033[34mFortify is already installed (skipping fortify:install).\033[0m\n";
+    echo "\033[34mLaravel Fortify is already installed (skipping fortify:install).\033[0m\n";
 } else {
-    echo "\033[34mFortify is not installed. Installing Fortify...\033[0m\n";
+    echo "\033[34mLaravel Fortify is not installed. Installing Laravel Fortify...\033[0m\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
     
     if ($status !== 0) {
-        echo "\033[34mError: Fortify installation failed via Composer.\033[0m\n";
+        echo "\033[34mError: Laravel Fortify installation failed via Composer.\033[0m\n";
         echo implode("\n", $composerOutput);
         exit(1);
     } else {
-        echo "\033[34mFortify installed successfully.\033[0m\n";
+        echo "\033[34mLaravel Fortify installed successfully.\033[0m\n";
     }
 }
 
@@ -62,7 +62,7 @@ if (!$fortifyMigrationExists) {
         echo "\033[34mError running fortify:install: " . implode("\n", $execOutput) . "\033[0m\n";
         exit(1);
     } else {
-        echo "\033[34mFortify installation command executed successfully.\033[0m\n";
+        echo "\033[34mLaravel Fortify installation command executed successfully.\033[0m\n";
     }
 } else {
     echo "\033[34mMigration files already exist. Do you want to reset and reapply the migrations?\033[0m\n";
