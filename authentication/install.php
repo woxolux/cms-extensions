@@ -50,14 +50,21 @@ if (!empty($missingMigrations)) {
     $response = strtoupper(trim(fgets(STDIN)));
 
     if ($response === 'Y') {
-        echo "Rolling back migrations...\n";
-        Artisan::call('migrate:rollback'); // Rollback last batch of migrations
-        echo "Migrations rolled back successfully.\n";
+        // Warning: All data will be lost when using `migrate:fresh`
+        echo "Warning: This will reset ALL data and drop all tables in your database!\n";
+        echo "Are you sure you want to continue? (Y/N): ";
+        $confirm = strtoupper(trim(fgets(STDIN)));
 
-        // Run migrations again (this will reuse the existing migration files)
-        echo "Running migrations...\n";
-        Artisan::call('migrate');
-        echo "Migrations have been successfully reapplied.\n";
+        if ($confirm === 'Y') {
+            echo "Running migrate:fresh to drop all tables and reapply migrations...\n";
+
+            // Run the fresh migrations (this will drop all tables and recreate them)
+            Artisan::call('migrate:fresh');
+            echo "Database has been reset and all migrations have been reapplied.\n";
+        } else {
+            echo "Migration reset aborted. Skipping reset...\n";
+            exit(0);
+        }
     } elseif ($response === 'N') {
         echo "Skipping Fortify migration reset...\n";
     } else {
