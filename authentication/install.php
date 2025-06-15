@@ -20,12 +20,15 @@ $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
 // Check if all required migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+    // Check if any applied migration ends with the required suffix
+    $isMigrationApplied = false;
     foreach ($appliedMigrations as $migration) {
         if (substr($migration, -strlen($suffix)) === $suffix) {
-            return false;
+            $isMigrationApplied = true;
+            break;
         }
     }
-    return true;
+    return !$isMigrationApplied;  // If the migration is not applied, it will return true
 });
 
 // If migrations are missing, proceed to installation
@@ -50,9 +53,11 @@ if (strtoupper($response) === 'Y') {
     
     // Loop through the files and delete those matching the suffix
     foreach ($files as $file) {
-        if (strpos($file->getFilename(), '_add_two_factor_columns_to_users_table.php') !== false) {
-            echo "Deleting file: " . $file->getFilename() . "\n";
-            File::delete($file);  // Delete the file
+        foreach ($missingMigrations as $suffix) {
+            if (strpos($file->getFilename(), $suffix) !== false) {
+                echo "Deleting file: " . $file->getFilename() . "\n";
+                File::delete($file);  // Delete the file
+            }
         }
     }
 
