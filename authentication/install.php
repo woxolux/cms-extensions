@@ -100,7 +100,7 @@ if (!$fortifyMigrationExists) {
             echo "\033[34mSkipping database reset and migrations.\033[0m\n";
             break; // Exit the loop if user chooses not to reset
         } else {
-            echo "\033[34mInvalid response. Please enter 'Y' or 'N'.\033[0m: ";  // Error message for invalid input
+            echo "\033[34mInvalid response. Please enter '\033[32mY' or '\033[31mN'\033[0m: ";  // Error message for invalid input
             // No exit, just loop back to ask again
         }
     }
