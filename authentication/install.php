@@ -7,29 +7,36 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the suffixes for the migrations we need to check
-$requiredMigrationSuffixes = [
-    '_add_two_factor_columns_to_users_table',
-    '_create_users_table',
-    '_create_cache_table',
-    '_create_jobs_table',
+// Define the required migrations
+$requiredMigrations = [
+    'add_two_factor_columns_to_users_table',  // Migration name base
+    'create_users_table',
+    'create_cache_table',
+    'create_jobs_table',
 ];
 
-// Get a list of all applied migrations
-$appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
+// ** 1. Fetch the list of applied migrations with raw SQL to be sure of the format **
+echo "Fetching applied migrations from the database...\n";
+$appliedMigrations = DB::select('SELECT migration FROM migrations');
+
 echo "Applied migrations: \n";
-print_r($appliedMigrations); // Debug output to check what migrations are actually applied
+foreach ($appliedMigrations as $migration) {
+    echo $migration->migration . "\n"; // Debugging output to check what migrations are applied
+}
 
-// Check if all required migrations (based on suffixes) are already applied
-$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+// ** 2. Check if all required migrations (based on base names) are already applied **
+$missingMigrations = array_filter($requiredMigrations, function ($requiredMigration) use ($appliedMigrations) {
     $isMigrationApplied = false;
-    
-    foreach ($appliedMigrations as $migration) {
-        // DEBUG: Output each migration being checked against the suffix
-        echo "Checking migration: " . $migration . " against suffix: " . $suffix . "\n";
 
-        // Check if the migration name ends with the required suffix
-        if (substr($migration, -strlen($suffix)) === $suffix) {
+    foreach ($appliedMigrations as $migration) {
+        // Remove the timestamp prefix to get the migration name base (e.g., _add_two_factor_columns_to_users_table)
+        $migrationBaseName = preg_replace('/^\d+_/', '', $migration->migration);
+        
+        // DEBUG: Output each migration being checked against the required base names
+        echo "Checking migration base: " . $migrationBaseName . " against required: " . $requiredMigration . "\n";
+        
+        // Check if the base migration name matches the required one
+        if ($migrationBaseName === $requiredMigration) {
             $isMigrationApplied = true;
             break;
         }
@@ -38,11 +45,11 @@ $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix)
     return !$isMigrationApplied;  // If the migration is not applied, return true
 });
 
-// DEBUG: Output missing migrations
+// ** 3. Output the result of missing migrations **
 echo "Missing migrations: \n";
 print_r($missingMigrations);
 
-// If migrations are missing, proceed to installation
+// ** 4. If migrations are missing, proceed with installation **
 if (!empty($missingMigrations)) {
     echo "Required migrations are missing. Proceeding with Fortify installation...\n";
 } else {
