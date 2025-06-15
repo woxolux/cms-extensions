@@ -50,24 +50,14 @@ if (!empty($missingMigrations)) {
     $response = strtoupper(trim(fgets(STDIN)));
 
     if ($response === 'Y') {
-        echo "Deleting Fortify migration files...\n";
-
-        // Loop through the files and delete ONLY Fortify-related migration files
-        foreach ($files as $file) {
-            foreach ($fortifyMigrationSuffixes as $suffix) {
-                if (strpos($file->getFilename(), $suffix) !== false) {
-                    echo "Deleting file: " . $file->getFilename() . "\n";
-                    File::delete($file);  // Delete the file
-                }
-            }
-        }
-
-        // Reset migrations
+        echo "Reusing existing Fortify migration files...\n";
+        
+        // Reset migrations without deleting migration files
         echo "Resetting migrations...\n";
         Artisan::call('migrate:reset');
         echo "Migrations have been reset.\n";
 
-        // Run migrations again
+        // Run migrations again (without modifying existing migration files)
         echo "Running migrations...\n";
         Artisan::call('migrate');
         echo "Migrations have been successfully reapplied.\n";
