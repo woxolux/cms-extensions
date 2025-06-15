@@ -12,18 +12,24 @@ $fortifyMigrationSuffixes = [
     '_add_two_factor_columns_to_users_table', // Fortify-specific migration
 ];
 
-// Get a list of all applied migrations
+// Get a list of all applied migrations from the database
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
+echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";  // Log applied migrations for debug
 
 // Check if all required Fortify migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+    // Check if any migration filename ends with the required suffix
+    $isMissing = true;
     foreach ($appliedMigrations as $migration) {
         if (substr($migration, -strlen($suffix)) === $suffix) {
-            return false;
+            $isMissing = false;  // Fortify migration found, not missing
+            break;
         }
     }
-    return true;
+    return $isMissing;
 });
+
+echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";  // Debug log for missing migrations
 
 // If migrations are missing, proceed to installation
 if (!empty($missingMigrations)) {
@@ -47,7 +53,6 @@ if (strtoupper($response) === 'Y') {
     
     // Loop through the files and delete ONLY Fortify-related migration files
     foreach ($files as $file) {
-        // Delete only Fortify migrations based on suffix
         foreach ($fortifyMigrationSuffixes as $suffix) {
             if (strpos($file->getFilename(), $suffix) !== false) {
                 echo "Deleting file: " . $file->getFilename() . "\n";
