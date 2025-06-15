@@ -135,9 +135,10 @@ if ($isFortifyMigrationApplied) {
         Artisan::call('migrate');
         echo "Migrations have been successfully reapplied.\n";
         installFortify();
-    } elseif (strtoupper($response) === 'N') {
+    } elseif (strtoupper($response) === 'N' || $response === '') { // Treat empty response as 'N'
         echo "Skipping Fortify migration reset. Fortify assets and config will be published if needed.\n"; // Updated message
-        installFortify();
+        // Do not call installFortify() here again if 'N' and it's already installed.
+        // It will be called in the final publishing step anyway.
     } else {
         echo "Invalid response. Exiting installation script.\n";
         exit(1);
@@ -164,5 +165,7 @@ try {
     echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
 }
 
+
 // Final message
 echo "Fortify installation process completed.\n";
+
