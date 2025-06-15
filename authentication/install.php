@@ -17,19 +17,30 @@ $requiredMigrationSuffixes = [
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
+echo "Applied migrations: \n";
+print_r($appliedMigrations); // Debug output to check what migrations are actually applied
 
 // Check if all required migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
-    // Check if any applied migration ends with the required suffix
     $isMigrationApplied = false;
+    
     foreach ($appliedMigrations as $migration) {
+        // DEBUG: Output each migration being checked against the suffix
+        echo "Checking migration: " . $migration . " against suffix: " . $suffix . "\n";
+
+        // Check if the migration name ends with the required suffix
         if (substr($migration, -strlen($suffix)) === $suffix) {
             $isMigrationApplied = true;
             break;
         }
     }
-    return !$isMigrationApplied;  // If the migration is not applied, it will return true
+
+    return !$isMigrationApplied;  // If the migration is not applied, return true
 });
+
+// DEBUG: Output missing migrations
+echo "Missing migrations: \n";
+print_r($missingMigrations);
 
 // If migrations are missing, proceed to installation
 if (!empty($missingMigrations)) {
