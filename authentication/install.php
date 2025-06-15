@@ -65,7 +65,7 @@ if (!$fortifyMigrationExists) {
         echo "Fortify installation command executed successfully.\n";
     }
 } else {
-    echo "Migration files already exists. Do you want to reset and reapply migrations?";
+    echo "Migration files already exists. Do you want to reset and reapply migrations?\n";
 }
 
 // Ask user if they want to reset the database (clear all data)
