@@ -93,7 +93,7 @@ if ($response === 'Y') {
 
 // **Publishing Fortify assets, views, and config only if Fortify is installed**
 if ($fortifyInstalled) {
-    echo "\033[34mPublishing Fortify assets, views, and config...\033[0m\n";
+    echo "\033[34mPublishing Laravel Fortify assets, views, and config...\033[0m\n";
     Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
     Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
     Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
