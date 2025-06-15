@@ -101,35 +101,37 @@ if (!$fortifyMigrationExists) {
             echo "\033[34mSkipping database reset and migrations...\033[0m\n";
             break; // Exit the loop if user chooses not to reset
         } elseif ($response === 'E') {
-            // If user chooses to exit, delete the extensions folder and exit
-            echo "\033[34mExit\033[0m\n";
-            exit(0);
+            // If user chooses to exit, delete the extensions folder and exit with a cancel message
+            echo "\033[34mExiting and deleting 'storage/private/extensions' folder...\033[0m\n";
+            $extensionFolder = storage_path('private/extensions');
+
+            // Check if the folder exists, then delete it
+            if (File::exists($extensionFolder)) {
+                File::deleteDirectory($extensionFolder);
+                echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
+            } else {
+                echo "\033[34m'extensions' folder does not exist.\033[0m\n";
+            }
+
+            echo "\033[34mInstallation canceled.\033[0m\n"; // Canceled message
+            exit(0);  // Exit immediately after deleting the folder
         } else {
             echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
             // No exit, just loop back to ask again
         }
     }
+}
 
-    // **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
-    if ($response === 'N') {
-        $extensionFolder = storage_path('private/extensions');
+// **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
+if ($response === 'N') {
+    $extensionFolder = storage_path('private/extensions');
 
-        // Check if the folder exists, then delete it
-        if (File::exists($extensionFolder)) {
-            File::deleteDirectory($extensionFolder);
-            echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
-        } else {
-            echo "\033[34m'extensions' folder does not exist.\033[0m\n";
-        }
-    }
-    if ($response === 'E') {
-        $extensionFolder = storage_path('private/extensions');
-
-        // Check if the folder exists, then delete it
-        if (File::exists($extensionFolder)) {
-            File::deleteDirectory($extensionFolder);
-            echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
-        }
+    // Check if the folder exists, then delete it
+    if (File::exists($extensionFolder)) {
+        File::deleteDirectory($extensionFolder);
+        echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
+    } else {
+        echo "\033[34m'extensions' folder does not exist.\033[0m\n";
     }
 }
 
