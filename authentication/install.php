@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
@@ -12,37 +11,34 @@ $fortifyMigrationSuffixes = [
     'add_two_factor_columns_to_users_table', // Fortify-specific migration
 ];
 
-// Get a list of all applied migrations from the database
-$appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
+// Get a list of all migration files in the migrations directory
+$migrationPath = database_path('migrations');
+$files = File::files($migrationPath);
 
-// Log the applied migrations for further debug
-echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";
-
-// Check if all required Fortify migrations (based on suffixes) are already applied
-$missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
-
-    // Check if any migration filename contains the required suffix
-    $isMissing = true;
-
-    foreach ($appliedMigrations as $migration) {
-        // Use regex to remove the timestamp
-        if (preg_match('/^(\d{17})_(.*)$/', $migration, $matches)) {
-            $migrationName = $matches[2]; // Get the migration name after the timestamp
-
-            // Log each comparison for debug
-            echo "Comparing migration: $migrationName with suffix: $suffix\n";
-
-            if (strpos($migrationName, $suffix) !== false) {
-                $isMissing = false; // Fortify migration found, not missing
-                break;
-            }
+// Filter the files that match the Fortify migration suffixes
+$existingMigrations = [];
+foreach ($files as $file) {
+    foreach ($fortifyMigrationSuffixes as $suffix) {
+        if (strpos($file->getFilename(), $suffix) !== false) {
+            $existingMigrations[] = $file->getFilename(); // Migration file found
+            break;
         }
     }
+}
 
-    return $isMissing;
-});
+// Log existing migrations for further debug
+echo "Existing Fortify migration files: " . implode(', ', $existingMigrations) . "\n";
 
-// Log missing migrations for further debug
+// Check if any Fortify migration files are missing
+$missingMigrations = array_diff($fortifyMigrationSuffixes, array_map(function ($filename) use ($fortifyMigrationSuffixes) {
+    foreach ($fortifyMigrationSuffixes as $suffix) {
+        if (strpos($filename, $suffix) !== false) {
+            return $suffix;
+        }
+    }
+    return null;
+}, $existingMigrations));
+
 echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
 
 // If migrations are missing, proceed to installation
@@ -58,10 +54,6 @@ $response = strtoupper(trim(fgets(STDIN)));
 
 if ($response === 'Y') {
     echo "Deleting Fortify migration files...\n";
-
-    // Define the path to the migrations directory
-    $migrationPath = database_path('migrations');
-    $files = File::files($migrationPath);
 
     // Loop through the files and delete ONLY Fortify-related migration files
     foreach ($files as $file) {
