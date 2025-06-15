@@ -30,11 +30,12 @@ foreach ($files as $file) {
 $fortifyMigrationExists = !empty($existingMigrations);
 
 // **Check if Laravel Fortify is installed via Composer**
-echo "\033[34mChecking if Laravel Fortify is already installed via Composer...\033[0m\n";
-$composerOutput = [];
+$fortifyInstalled = false;
 exec('composer show laravel/fortify', $composerOutput, $status);
 
-$fortifyInstalled = $status === 0;
+if ($status === 0) {
+    $fortifyInstalled = true;
+}
 
 if ($fortifyInstalled) {
     echo "\033[34mLaravel Fortify is already installed (skipping fortify:install).\033[0m\n";
