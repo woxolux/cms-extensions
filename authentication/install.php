@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-// Define the required migrations
+// Define the required migration names (full name including timestamp)
 $requiredMigrations = [
-    'add_two_factor_columns_to_users_table',  // Migration name base
-    'create_users_table',
-    'create_cache_table',
-    'create_jobs_table',
+    '0001_01_01_000000_create_users_table',  // Full migration name with timestamp
+    '0001_01_01_000001_create_cache_table',
+    '0001_01_01_000002_create_jobs_table',
+    '0001_01_01_000003_add_two_factor_columns_to_users_table',  // Assuming this is the correct full name
 ];
 
 // ** 1. Fetch the list of applied migrations with raw SQL to be sure of the format **
@@ -24,19 +24,16 @@ foreach ($appliedMigrations as $migration) {
     echo $migration->migration . "\n"; // Debugging output to check what migrations are applied
 }
 
-// ** 2. Check if all required migrations (based on base names) are already applied **
+// ** 2. Check if all required migrations are already applied **
 $missingMigrations = array_filter($requiredMigrations, function ($requiredMigration) use ($appliedMigrations) {
     $isMigrationApplied = false;
 
     foreach ($appliedMigrations as $migration) {
-        // Remove the timestamp prefix to get the migration name base (e.g., _add_two_factor_columns_to_users_table)
-        $migrationBaseName = preg_replace('/^\d+_/', '', $migration->migration);
+        // DEBUG: Output each migration being checked against the required full name
+        echo "Checking migration: " . $migration->migration . " against required: " . $requiredMigration . "\n";
         
-        // DEBUG: Output each migration being checked against the required base names
-        echo "Checking migration base: " . $migrationBaseName . " against required: " . $requiredMigration . "\n";
-        
-        // Check if the base migration name matches the required one
-        if ($migrationBaseName === $requiredMigration) {
+        // Check if the exact migration name matches
+        if ($migration->migration === $requiredMigration) {
             $isMigrationApplied = true;
             break;
         }
@@ -69,10 +66,10 @@ if (strtoupper($response) === 'Y') {
     // Get all files in the migrations folder
     $files = File::files($migrationPath);
     
-    // Loop through the files and delete those matching the suffix
+    // Loop through the files and delete those matching the full name
     foreach ($files as $file) {
-        foreach ($missingMigrations as $suffix) {
-            if (strpos($file->getFilename(), $suffix) !== false) {
+        foreach ($missingMigrations as $migrationName) {
+            if (strpos($file->getFilename(), $migrationName) !== false) {
                 echo "Deleting file: " . $file->getFilename() . "\n";
                 File::delete($file);  // Delete the file
             }
