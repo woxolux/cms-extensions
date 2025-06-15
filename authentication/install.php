@@ -69,7 +69,7 @@ if (!$fortifyMigrationExists) {
 }
 
 // Ask user if they want to reset the database (clear all data)
-echo "\033[31mWARNING: ALL DATA WILL BE RESET (DROPPED) INCLUDING TABLES AND RELATIONSHIPS\033[0m. Are you sure you want to proceed? (Y/N): ";
+echo "\033[31mWARNING: ALL DATA WILL BE RESET (DROPPED) INCLUDING TABLES AND RELATIONSHIPS\033[0m.\nAre you sure you want to proceed? (Y/N): ";
 $response = strtoupper(trim(fgets(STDIN)));
 
 if ($response === 'Y') {
