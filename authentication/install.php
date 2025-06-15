@@ -66,50 +66,23 @@ function installFortify()
     Artisan::call('view:clear');     // Clear view cache
     echo "Laravel caches cleared and optimized.\n";
 
-    // CRUCIAL ADDITION (re-introduced): Re-include the Composer autoloader for the current process
-    // This is vital to ensure the running PHP script recognizes the newly available classes
-    // (like FortifyServiceProvider) after Composer operations have completed.
-    $autoloadPath = base_path('vendor/autoload.php');
-    if (file_exists($autoloadPath)) {
-        echo "Re-including Composer autoloader for current process to load new classes...\n";
-        require $autoloadPath;
-        echo "Composer autoloader re-included.\n";
-    } else {
-        echo "Warning: Composer autoloader file not found at {$autoloadPath}. Cannot re-include.\n";
-    }
+    // CRUCIAL CHANGE: Run fortify:install in a separate PHP process.
+    // This ensures a fresh Laravel application instance is booted,
+    // which will correctly recognize the newly installed Fortify service provider.
+    echo "Running fortify:install in a separate Artisan process...\n";
+    // Use PHP_BINARY for robustness to find the PHP executable
+    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+    $execOutput = [];
+    $execStatus = 0;
+    exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-
-    // Crucial step: Manually register FortifyServiceProvider for the current application instance.
-    // This ensures `fortify:install` is discoverable immediately.
-    echo "Attempting to register Fortify service provider for current execution...\n";
-    $app = app(); // Get the current Laravel application instance
-    $provider = 'Laravel\\Fortify\\FortifyServiceProvider';
-
-    // Only register if the app hasn't been fully bootstrapped or the provider isn't found
-    if (!$app->hasBeenBootstrapped() || !$app->getProvider($provider)) {
-        $app->register($provider);
-        echo "FortifyServiceProvider registered for current runtime.\n";
-    } else {
-        echo "FortifyServiceProvider already active for current runtime.\n";
-    }
-
-    // Check if the 'fortify:install' command exists before running it
-    // This check is now more likely to pass after Composer sync and cache clearing
-    $commands = Artisan::all();
-    if (!isset($commands['fortify:install'])) {
-        echo "Error: 'fortify:install' command still not found after provider registration. This indicates a deeper issue or an inconsistent environment state.\n";
+    if ($execStatus !== 0) {
+        Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
+        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
         exit(1);
-    }
-
-    // Run fortify:install
-    echo "Running fortify:install...\n";
-    try {
-        Artisan::call('fortify:install');
-        echo "Fortify installation command executed successfully.\n";
-    } catch (Exception $e) {
-        Log::error("Error running fortify:install: " . $e->getMessage());
-        echo "Error running fortify:install: " . $e->getMessage() . "\n";
-        exit(1);
+    } else {
+        echo "Fortify installation command executed successfully in separate process.\n";
+        echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
     }
 }
 
