@@ -15,66 +15,79 @@ $fortifyMigrationSuffixes = [
 // Get a list of all applied migrations from the database
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
+// Log the applied migrations for further debug
+echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";
+
 // Check if all required Fortify migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
-    // Check if any migration filename contains the required suffix
-    foreach ($appliedMigrations as $migration) {
-        // Get the migration name by removing the timestamp (first 17 characters)
-        $migrationName = substr($migration, 17); // This will remove the timestamp, leaving the migration name
 
-        // If migration name contains the suffix, it's not missing
-        if (strpos($migrationName, $suffix) !== false) {
-            return false;
+    // Check if any migration filename contains the required suffix
+    $isMissing = true;
+
+    foreach ($appliedMigrations as $migration) {
+        // Use regex to remove the timestamp
+        if (preg_match('/^(\d{17})_(.*)$/', $migration, $matches)) {
+            $migrationName = $matches[2]; // Get the migration name after the timestamp
+
+            // Log each comparison for debug
+            echo "Comparing migration: $migrationName with suffix: $suffix\n";
+
+            if (strpos($migrationName, $suffix) !== false) {
+                $isMissing = false; // Fortify migration found, not missing
+                break;
+            }
         }
     }
-    return true;
+
+    return $isMissing;
 });
 
 // Log missing migrations for further debug
 echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
 
-// If migrations are missing, prompt for resetting and applying them
+// If migrations are missing, proceed to installation
 if (!empty($missingMigrations)) {
-    echo "Required Fortify migrations are missing. Do you want to reset and apply the missing Fortify migrations? (Y/N): ";
-
-    $response = trim(fgets(STDIN));
-
-    if (strtoupper($response) === 'Y') {
-        echo "Deleting Fortify migration files...\n";
-
-        // Define the path to the migrations directory
-        $migrationPath = database_path('migrations');
-
-        // Get all files in the migrations folder
-        $files = File::files($migrationPath);
-
-        // Loop through the files and delete ONLY Fortify-related migration files
-        foreach ($files as $file) {
-            foreach ($fortifyMigrationSuffixes as $suffix) {
-                if (strpos($file->getFilename(), $suffix) !== false) {
-                    echo "Deleting file: " . $file->getFilename() . "\n";
-                    File::delete($file);  // Delete the file
-                }
-            }
-        }
-
-        // Reset migrations (this will remove all migrated data and tables)
-        echo "Resetting migrations...\n";
-        Artisan::call('migrate:reset');
-        echo "Migrations have been reset.\n";
-
-        // Run migrations again (this will apply all migrations, including the Fortify ones)
-        echo "Running migrations...\n";
-        Artisan::call('migrate');
-        echo "Migrations have been successfully reapplied.\n";
-    } elseif (strtoupper($response) === 'N') {
-        echo "Skipping Fortify migration reset...\n";
-    } else {
-        echo "Invalid response. Exiting...\n";
-        exit(1);
-    }
+    echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
 } else {
     echo "Fortify migrations have already been applied.\n";
+}
+
+// Prompt user to reset Fortify migrations if required
+echo "Do you want to reset and apply the missing Fortify migrations? (Y/N): ";
+$response = strtoupper(trim(fgets(STDIN)));
+
+if ($response === 'Y') {
+    echo "Deleting Fortify migration files...\n";
+
+    // Define the path to the migrations directory
+    $migrationPath = database_path('migrations');
+    $files = File::files($migrationPath);
+
+    // Loop through the files and delete ONLY Fortify-related migration files
+    foreach ($files as $file) {
+        foreach ($fortifyMigrationSuffixes as $suffix) {
+            if (strpos($file->getFilename(), $suffix) !== false) {
+                echo "Deleting file: " . $file->getFilename() . "\n";
+                File::delete($file);  // Delete the file
+            }
+        }
+    }
+
+    // Reset migrations
+    echo "Resetting migrations...\n";
+    Artisan::call('migrate:reset');
+    echo "Migrations have been reset.\n";
+
+    // Run migrations again
+    echo "Running migrations...\n";
+    Artisan::call('migrate');
+    echo "Migrations have been successfully reapplied.\n";
+
+} elseif ($response === 'N') {
+    echo "Skipping Fortify migration reset...\n";
+} else {
+    echo "Invalid response. Exiting...\n";
+    exit(1);
 }
 
 // Always proceed to publish Fortify assets, views, and config
@@ -90,7 +103,7 @@ exec('composer show laravel/fortify', $composerOutput, $status);
 
 if ($status !== 0) {
     echo "Fortify is not installed. Installing Fortify via Composer...\n";
-    exec("composer require laravel/fortify", $composerOutput, $status);
+    exec('composer require laravel/fortify', $composerOutput, $status);
 
     if ($status !== 0) {
         echo "Error: Fortify installation failed via Composer.\n";
@@ -103,8 +116,7 @@ if ($status !== 0) {
     echo "Fortify is already installed.\n";
 }
 
-// Always run 'composer install' to ensure all packages are correctly installed
-// and the autoloader is fully consistent after any require operations.
+// Run 'composer install' to ensure all dependencies are correctly installed and autoloader is fully consistent
 echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
 exec('composer install', $composerOutput, $status);
 
@@ -115,7 +127,7 @@ if ($status !== 0) {
     echo "Composer dependencies and autoloader verified.\n";
 }
 
-// Clear and optimize Laravel's internal service cache and config cache.
+// Clear and optimize Laravel's internal service cache and config cache
 echo "Clearing and optimizing Laravel service cache...\n";
 Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
 Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
@@ -123,9 +135,7 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 echo "Laravel caches cleared and optimized.\n";
 
-// CRITICAL CHANGE: Run fortify:install in a separate PHP process.
-// This ensures a fresh Laravel application instance is booted,
-// which will correctly recognize the newly installed Fortify service provider.
+// Run fortify:install in a separate PHP process
 echo "Running fortify:install in a separate Artisan process...\n";
 $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
 exec($fortifyInstallCommand, $execOutput, $execStatus);
