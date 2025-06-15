@@ -69,15 +69,19 @@ if (!$fortifyMigrationExists) {
 }
 
 // Ask user if they want to reset the database (clear all data)
-echo "\033[31m\033[34mWARNING! RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m\nDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): ";
+echo "\033[38;5;214mDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): \033[0m"; // Orange question
+
 $response = strtoupper(trim(fgets(STDIN)));
 
+// Handle the user's response with color-coded output
 if ($response === 'Y') {
+    echo "\033[32mYou chose Yes.\033[0m\n"; // Green for Yes
     // If user agrees to reset database, drop all tables and reapply migrations
     echo "\033[34mRunning migrate:fresh to drop all tables and reapply migrations...\033[0m\n";
     Artisan::call('migrate:fresh');
     echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
 } elseif ($response === 'N') {
+    echo "\033[31mYou chose No.\033[0m\n"; // Red for No
     echo "\033[34mSkipping database reset...\033[0m\n";
 } else {
     echo "\033[34mInvalid response. Exiting...\033[0m\n";
