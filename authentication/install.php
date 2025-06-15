@@ -14,7 +14,9 @@ $fortifyMigrationSuffixes = [
 
 // Get a list of all applied migrations from the database
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
-echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";  // Log applied migrations for debug
+
+// Log the applied migrations for further debug
+echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";
 
 // Check if all required Fortify migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
@@ -22,7 +24,11 @@ $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) 
     $isMissing = true;
     foreach ($appliedMigrations as $migration) {
         // Extract the migration name by removing the timestamp (first part of the filename)
-        $migrationName = substr($migration, 17); // Remove the timestamp part
+        $migrationName = substr($migration, 17); // Remove the timestamp part (assuming it's 17 characters long)
+        
+        // Log each comparison for debug
+        echo "Comparing migration: $migrationName with suffix: $suffix\n";
+
         if (strpos($migrationName, $suffix) !== false) {
             $isMissing = false;  // Fortify migration found, not missing
             break;
@@ -31,7 +37,8 @@ $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) 
     return $isMissing;
 });
 
-echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";  // Debug log for missing migrations
+// Log missing migrations for further debug
+echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
 
 // If migrations are missing, proceed to installation
 if (!empty($missingMigrations)) {
