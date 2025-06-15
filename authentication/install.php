@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
-echo "\033[34m-------------------------------------------------------------\033[0m\n";
 echo "\033[34mRunning Fortify installation...\033[0m\n";
 
 // Define the suffixes for the Fortify-related migrations that we need to check
@@ -108,4 +107,3 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 // Confirming that caches are cleared and optimized
 echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
-echo "\033[34m-------------------------------------------------------------\033[0m\n";
