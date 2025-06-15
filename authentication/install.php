@@ -106,11 +106,11 @@ if (!$fortifyMigrationExists) {
             $extensionFolder = storage_path('private/extensions');
 
             // Check if the folder exists, then delete it
-            if (File::exists($extensionFolder)) {
+            if (File::exists($extensionFolder) && File::isDirectory($extensionFolder)) {
                 File::deleteDirectory($extensionFolder);
                 echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
             } else {
-                echo "\033[34m'extensions' folder does not exist.\033[0m\n";
+                echo "\033[34m'extensions' folder does not exist or is not a directory.\033[0m\n";
             }
 
             echo "\033[34mInstallation canceled.\033[0m\n"; // Canceled message
@@ -127,11 +127,11 @@ if ($response === 'N') {
     $extensionFolder = storage_path('private/extensions');
 
     // Check if the folder exists, then delete it
-    if (File::exists($extensionFolder)) {
+    if (File::exists($extensionFolder) && File::isDirectory($extensionFolder)) {
         File::deleteDirectory($extensionFolder);
         echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
     } else {
-        echo "\033[34m'extensions' folder does not exist.\033[0m\n";
+        echo "\033[34m'extensions' folder does not exist or is not a directory.\033[0m\n";
     }
 }
 
