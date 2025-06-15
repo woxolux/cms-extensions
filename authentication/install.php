@@ -50,16 +50,13 @@ if (!empty($missingMigrations)) {
     $response = strtoupper(trim(fgets(STDIN)));
 
     if ($response === 'Y') {
-        echo "Reusing existing Fortify migration files...\n";
-        
-        // Manually rollback the migrations (without deleting any files)
         echo "Rolling back migrations...\n";
-        Artisan::call('migrate:rollback'); // Rollback the latest batch of migrations
+        Artisan::call('migrate:rollback'); // Rollback last batch of migrations
         echo "Migrations rolled back successfully.\n";
 
-        // Run migrations again (this will use the existing migration files)
+        // Run migrations again (this will reuse the existing migration files)
         echo "Running migrations...\n";
-        Artisan::call('migrate'); // Apply the migrations again
+        Artisan::call('migrate');
         echo "Migrations have been successfully reapplied.\n";
     } elseif ($response === 'N') {
         echo "Skipping Fortify migration reset...\n";
