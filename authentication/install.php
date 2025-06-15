@@ -38,7 +38,7 @@ if ($status === 0) {
 }
 
 if ($fortifyInstalled) {
-    echo "\033[34mLaravel Fortify is already installed (skipping fortify:install).\033[0m\n";
+    echo "\033[34mLaravel Fortify is already installed (skipping fortify:install)...\033[0m\n";
 } else {
     echo "\033[34mLaravel Fortify is not installed. Installing Laravel Fortify...\033[0m\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
