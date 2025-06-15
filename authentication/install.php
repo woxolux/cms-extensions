@@ -109,7 +109,7 @@ function installFortify()
 // These are the actual migration names without timestamps that Fortify creates.
 $fortifyMigrationSuffixes = [
     '_create_two_factor_authentication_tables', // The main Fortify 2FA table
-    'add_two_factor_columns_to_users_table', // The column addition to users table
+    'add_two_factor_columns_to_users_table',    // The column addition to users table
 ];
 
 // IMPORTANT: Reconnect to the database to ensure the latest state is read.
@@ -157,8 +157,8 @@ if ($allFortifyMigrationsApplied) {
         echo "Migrations have been successfully reapplied.\n";
         installFortify(); // Call installFortify again to ensure publishing
     } elseif (strtoupper($response) === 'N' || $response === '') { // Treat empty response as 'N'
-        echo "Skipping Fortify migration reset. Fortify assets and config will be published if needed.\n";
-        installFortify(); // Call installFortify to ensure publishing
+        echo "Skipping Fortify migration reset and full re-installation.\n"; // Updated message
+        // No call to installFortify here, it will be handled by final publishing step if needed
     } else {
         echo "Invalid response. Exiting installation script.\n";
         exit(1);
