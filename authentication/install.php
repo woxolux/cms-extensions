@@ -68,6 +68,9 @@ if (!$fortifyMigrationExists) {
     echo "\033[34mMigration files already exist. Do you want to reset and reapply the migrations?\033[0m\n";
 }
 
+// **WARNING message in red**
+echo "\033[31mWARNING! RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m\n"; 
+
 // Ask user if they want to reset the database (clear all data)
 echo "\033[38;5;214mDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): \033[0m"; // Orange question
 
