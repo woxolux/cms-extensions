@@ -103,9 +103,6 @@ if (!$fortifyMigrationExists) {
         } elseif ($response === 'E') {
             // If user chooses to exit, delete the extensions folder and exit
             echo "\033[34mExit\033[0m\n";
-            break; // Exit the loop if user chooses not to reset
-
-            // Exit the script
             exit(0);
         } else {
             echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
