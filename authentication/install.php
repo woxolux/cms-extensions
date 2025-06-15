@@ -69,7 +69,7 @@ if (!$fortifyMigrationExists) {
 }
 
 // Ask user if they want to reset the database (clear all data)
-echo "\033[31mWARNING! WARNING: RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m!\nDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): ";
+echo "\033[31mWARNING! RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m!\nDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): ";
 $response = strtoupper(trim(fgets(STDIN)));
 
 if ($response === 'Y') {
