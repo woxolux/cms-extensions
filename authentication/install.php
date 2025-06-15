@@ -95,7 +95,8 @@ function installFortify()
 
     if ($status !== 0) {
         echo "Fortify is not installed. Installing Fortify via Composer...\n";
-        exec('composer require laravel/fortify', $composerOutput, $status);
+        $composerCommand = 'composer';
+        exec("{$composerCommand} require laravel/fortify", $composerOutput, $status);
 
         if ($status !== 0) {
             echo "Error: Fortify installation failed via Composer.\n";
@@ -108,54 +109,46 @@ function installFortify()
         echo "Fortify is already installed.\n";
     }
 
-    // Register the service provider in config/app.php if not already registered
-    echo "Registering Fortify service provider...\n";
-    $serviceProvider = "Laravel\\Fortify\\FortifyServiceProvider::class";
-    $appConfigPath = base_path('config/app.php');
-
-    if (File::exists($appConfigPath)) {
-        $configContents = File::get($appConfigPath);
-        if (strpos($configContents, $serviceProvider) === false) {
-            $configContents = preg_replace(
-                "/'providers' => \[.*\],/s",
-                "'providers' => [\n    " . $serviceProvider . ",\n    ],",
-                $configContents
-            );
-            File::put($appConfigPath, $configContents);
-            echo "Fortify service provider registered in config/app.php.\n";
-        } else {
-            echo "Fortify service provider is already registered.\n";
-        }
+    // Always run 'composer install' to ensure all packages are correctly installed
+    // and the autoloader is fully consistent after any require operations.
+    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
+    $composerCommand = 'composer';
+    $composerOutput = [];
+    exec("{$composerCommand} install", $composerOutput, $status);
+    if ($status !== 0) {
+        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
+        echo implode("\n", $composerOutput) . "\n";
     } else {
-        echo "Could not find config/app.php. Please ensure it's in the right location.\n";
-        exit(1);
+        echo "Composer dependencies and autoloader verified.\n";
     }
 
-    // Clear the config cache to make sure the service provider is loaded
-    echo "Clearing config cache...\n";
-    Artisan::call('config:clear');
+    // Clear and optimize Laravel's internal service cache and config cache.
+    // This forces Laravel to re-read its service provider manifest and compiled services,
+    // which should pick up Fortify's service provider and resolve class loading issues.
+    echo "Clearing and optimizing Laravel service cache...\n";
+    Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
+    Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
+    Artisan::call('cache:clear');    // Clear application cache
+    Artisan::call('view:clear');     // Clear view cache
+    echo "Laravel caches cleared and optimized.\n";
 
-    // Clear application cache to ensure everything is up-to-date
-    echo "Clearing application cache...\n";
-    Artisan::call('cache:clear');
 
-    // Add a small delay to ensure everything is fully loaded
-    sleep(2);
+    // CRITICAL CHANGE: Run fortify:install in a separate PHP process.
+    // This ensures a fresh Laravel application instance is booted,
+    // which will correctly recognize the newly installed Fortify service provider.
+    echo "Running fortify:install in a separate Artisan process...\n";
+    // Use PHP_BINARY for robustness to find the PHP executable
+    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+    $execOutput = [];
+    $execStatus = 0;
+    exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-    // Check if the 'fortify:install' command exists before running it
-    $commands = Artisan::all();
-    if (!isset($commands['fortify:install'])) {
-        echo "Error: 'fortify:install' command does not exist. Please check the service provider registration.\n";
+    if ($execStatus !== 0) {
+        Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
+        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
         exit(1);
-    }
-
-    // Run fortify:install
-    echo "Running fortify:install...\n";
-    try {
-        Artisan::call('fortify:install');
-        echo "Fortify installation completed successfully.\n";
-    } catch (Exception $e) {
-        echo "Error running fortify:install: " . $e->getMessage() . "\n";
-        exit(1);
+    } else {
+        echo "Fortify installation command executed successfully in separate process.\n";
+        echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
     }
 }
