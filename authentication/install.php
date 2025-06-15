@@ -72,7 +72,7 @@ if ($fortifyMigrationExists) {
     }
 } else {
     // Migrations are missing, proceed to install Fortify migrations
-    echo "Fortify migrations are missing. Proceeding with installation...\n";
+    echo "Some Fortify migration files are missing. Proceeding with installation...\n";
     // **Run fortify:install if migrations don't exist**
     echo "Running fortify:install...\n";
     $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
