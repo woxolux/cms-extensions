@@ -26,9 +26,6 @@ foreach ($files as $file) {
     }
 }
 
-// Log existing migrations for further debug
-echo "Existing Fortify migration files: " . implode(', ', $existingMigrations) . "\n";
-
 // Check if any Fortify migration files are missing
 $missingMigrations = array_diff($fortifyMigrationSuffixes, array_map(function ($filename) use ($fortifyMigrationSuffixes) {
     foreach ($fortifyMigrationSuffixes as $suffix) {
@@ -144,4 +141,3 @@ if ($response !== 'N') {
 } else {
     echo "Skipping fortify:install command.\n";
 }
-
