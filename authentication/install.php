@@ -65,11 +65,11 @@ if (!$fortifyMigrationExists) {
         echo "Fortify installation command executed successfully.\n";
     }
 } else {
-    echo "Migration files already exists. Do you want to reset and reapply migrations?\n";
+    echo "Migration files already exist. Do you want to reset and reapply the migrations?\n";
 }
 
 // Ask user if they want to reset the database (clear all data)
-echo "\033[31mWARNING: ALL DATA WILL BE RESET (DROPPED) INCLUDING TABLES AND RELATIONSHIPS\033[0m.\nAre you sure you want to proceed? (Y/N): ";
+echo "\033[31mWARNING! WARNING: RESETTING WILL ERASE ALL DATA, INCLUDING TABLES AND RELATIONSHIPS!\033[0m!\nDo you want to erase all data, including tables and relationships? (Y = Yes / N = No): ";
 $response = strtoupper(trim(fgets(STDIN)));
 
 if ($response === 'Y') {
