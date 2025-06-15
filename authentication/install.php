@@ -82,7 +82,8 @@ if (!$fortifyMigrationExists) {
 }
 
 // Ask user if they want to reset the database (clear all data)
-echo "Do you want to reset the database? WARNING: ALL DATA WILL BE RESET (Y/N): ";
+// **Make the warning text red**
+echo "\033[31mWARNING: ALL DATA WILL BE RESET\033[0m (Y/N): ";
 $response = strtoupper(trim(fgets(STDIN)));
 
 if ($response === 'Y') {
