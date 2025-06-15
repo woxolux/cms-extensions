@@ -121,16 +121,18 @@ foreach ($appliedMigrations as $migration) {
     }
 }
 
-// Adjusted logic for migration check and prompts
+// Adjusted logic for migration check and handling without interactive prompt
 if ($isFortifyMigrationApplied) {
     echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') has already been applied.\n";
+    echo "Since this script is running non-interactively, automatically resetting and re-installing Fortify's migrations.\n";
 
-    // Since interactive input is not consistently available, skip asking and proceed.
-    echo "Since this script is running non-interactively, skipping migration reset prompt and proceeding with installation process (if any assets/configs need publishing).\n";
-
-    // We still call installFortify() here to ensure assets and config are published on subsequent runs,
-    // as fortify:install is idempotent and will simply confirm scaffolding is done.
-    installFortify();
+    // Perform reset and reinstall steps automatically
+    deleteFortifyMigrations();
+    Artisan::call('migrate:reset');
+    echo "Migrations have been reset.\n";
+    Artisan::call('migrate');
+    echo "Migrations have been successfully reapplied.\n";
+    installFortify(); // Call installFortify again to ensure publishing
 } else {
     // If the Fortify migration is not applied, proceed to install it without asking for reset first.
     echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') is missing. Proceeding with Fortify installation.\n";
