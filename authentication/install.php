@@ -36,10 +36,9 @@ $missingMigrations = array_diff($fortifyMigrationSuffixes, array_map(function ($
     return null;
 }, $existingMigrations));
 
-echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
-
-// If migrations are missing, proceed to installation
+// **Conditionally show missing migrations message only if migrations are missing**
 if (!empty($missingMigrations)) {
+    echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
     echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
 } else {
     // Migrations are already applied, prompt for reset option
