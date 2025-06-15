@@ -115,7 +115,7 @@ if (!$fortifyMigrationExists) {
             // Exit the script
             exit(0);
         } else {
-           echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m\n";  // Error message for invalid input
+           echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m'\033[0m: ";  // Error message for invalid input
             // No exit, just loop back to ask again
         }
     }
