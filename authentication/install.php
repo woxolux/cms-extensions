@@ -82,8 +82,8 @@ if (!$fortifyMigrationExists) {
     // Ask user if they want to reset the database (clear all data)
     echo "\033[38;5;214mDo you want to erase all data, including tables and relationships? \033[0m"; // Orange question
 
-    // Color Y = Yes in green, N = No in red
-    echo "\033[32m(Y = Yes)\033[0m / \033[31m(N = No)\033[0m: ";
+    // Color Y = Yes in green, N = No in red, E = Exit in yellow
+    echo "\033[32m(Y = Yes)\033[0m / \033[31m(N = No)\033[0m / \033[33m(E = Exit)\033[0m: ";
 
     // Start a loop to keep asking until a valid response is given
     while (true) {
@@ -99,8 +99,23 @@ if (!$fortifyMigrationExists) {
         } elseif ($response === 'N') {
             echo "\033[34mSkipping database reset and migrations.\033[0m\n";
             break; // Exit the loop if user chooses not to reset
+        } elseif ($response === 'E') {
+            // If user chooses to exit, delete the extensions folder and exit
+            echo "\033[34mExiting and deleting 'storage/private/extensions' folder...\033[0m\n";
+            $extensionFolder = storage_path('private/extensions');
+
+            // Check if the folder exists, then delete it
+            if (File::exists($extensionFolder)) {
+                File::deleteDirectory($extensionFolder);
+                echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
+            } else {
+                echo "\033[34m'extensions' folder does not exist.\033[0m\n";
+            }
+
+            // Exit the script
+            exit(0);
         } else {
-            echo "\033[34mInvalid response. Please enter '\033[32mY' or '\033[31mN'\033[0m: ";  // Error message for invalid input
+           echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m\n";  // Error message for invalid input
             // No exit, just loop back to ask again
         }
     }
