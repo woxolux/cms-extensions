@@ -49,7 +49,7 @@ if (!$fortifyInstalled) {
     }
 }
 
-// **If migration file already exists, skip fortify:install**
+// **Skip fortify:install if migration file already exists**
 if ($fortifyMigrationExists) {
     echo "Skipping fortify:install. Migration file already exists.\n";
 } else {
