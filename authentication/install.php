@@ -133,7 +133,7 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 
 // Confirm that the cache has been cleared and optimized
-echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
+echo "\033[34mLaravel cache clearing and optimization completed successfully...\033[0m\n";
 
 // Display a closing message to indicate the script has finished executing
 echo "\033[34mClosing extended installation script.\033[0m\n";
