@@ -86,7 +86,6 @@ if ($response === 'Y') {
     Artisan::call('migrate:fresh');
     echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
 } elseif ($response === 'N') {
-    echo "\033[34mSkipping database reset...\033[0m\n";
 } else {
     echo "\033[34mInvalid response. Exiting...\033[0m\n";
     exit(1);
