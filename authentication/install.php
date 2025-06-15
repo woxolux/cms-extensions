@@ -7,23 +7,6 @@ use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
-/**
- * Deletes Fortify-related migration files from the database/migrations directory.
- */
-function deleteFortifyMigrations()
-{
-    echo "Deleting Fortify-related migration files...\n";
-    $migrationPath = database_path('migrations');
-    $files = File::files($migrationPath);
-    foreach ($files as $file) {
-        if (strpos($file->getFilename(), '_create_two_factor_authentication_tables.php') !== false ||
-            strpos(basename($file->getFilename()), '_add_two_factor_columns_to_users_table.php') !== false) {
-            echo "Deleting file: " . $file->getFilename() . "\n";
-            File::delete($file);
-        }
-    }
-}
-
 // Function to handle Fortify installation
 function installFortify()
 {
@@ -103,50 +86,75 @@ function installFortify()
     }
 }
 
-// Define the suffix for the main Fortify migration
-$fortifyMigrationSuffix = '_create_two_factor_authentication_tables';
-
-// IMPORTANT: Reconnect to the database to ensure the latest state is read.
-DB::reconnect();
+// Define the suffixes for the migrations we need to check
+$requiredMigrationSuffixes = [
+    '_add_two_factor_columns_to_users_table',
+    '_create_users_table',
+    '_create_cache_table',
+    '_create_jobs_table',
+];
 
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Check if the main Fortify migration is applied
-$isFortifyMigrationApplied = false;
-foreach ($appliedMigrations as $migration) {
-    if (str_ends_with($migration, $fortifyMigrationSuffix)) {
-        $isFortifyMigrationApplied = true;
-        break;
+// Check if all required migrations (based on suffixes) are already applied
+$missingMigrations = array_filter($requiredMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
+    foreach ($appliedMigrations as $migration) {
+        if (str_ends_with($migration, $suffix)) { // Using str_ends_with for cleaner check
+            return false;
+        }
     }
+    return true;
+});
+
+// If migrations are missing, proceed to installation
+if (!empty($missingMigrations)) {
+    echo "Required migrations are missing. Proceeding with Fortify installation or reset...\n";
+} else {
+    echo "Required migrations have already been applied.\n";
 }
 
-if ($isFortifyMigrationApplied) {
-    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') has already been applied.\n";
-    // If it's applied, we still give the option to reset for re-installation
-    echo "Do you want to reset and re-install Fortify's migrations? (Y/N): ";
-    $response = trim(fgets(STDIN));
-    if (strtoupper($response) === 'Y') {
-        echo "Proceeding with Fortify migration reset and re-installation...\n";
-        deleteFortifyMigrations(); // Call the new deletion function
-        Artisan::call('migrate:reset');
-        echo "Migrations have been reset.\n";
-        Artisan::call('migrate');
-        echo "Migrations have been successfully reapplied.\n";
-        installFortify();
-    } elseif (strtoupper($response) === 'N') {
-        echo "Skipping Fortify migration reset. Proceeding with Fortify installation (if not fully configured)...\n";
-        // Even if not resetting, still run installFortify to ensure assets/config etc. are published
-        installFortify();
-    } else {
-        echo "Invalid response. Exiting installation script.\n";
-        exit(1);
+// Ask user if they want to reset migrations
+echo "Do you want to reset the Fortify-related migrations and re-run all migrations? (Y/N): ";
+$response = trim(fgets(STDIN)); // STDIN is required for interactive input
+
+if (strtoupper($response) === 'Y') {
+    echo "Deleting Fortify-related migration files...\n";
+
+    // Define the path to the migrations directory
+    $migrationPath = database_path('migrations');
+
+    // Get all files in the migrations folder
+    $files = File::files($migrationPath);
+
+    // Loop through the files and delete those matching the Fortify migration suffix
+    foreach ($files as $file) {
+        if (strpos($file->getFilename(), '_create_two_factor_authentication_tables.php') !== false ||
+            strpos(basename($file->getFilename()), '_add_two_factor_columns_to_users_table.php') !== false) {
+            echo "Deleting file: " . $file->getFilename() . "\n";
+            File::delete($file); // Delete the file
+        }
     }
-} else {
-    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') is missing. Proceeding with Fortify installation.\n";
-    // If it's missing, no need to ask about resetting unless it's for *all* migrations
-    // For simplicity, if it's missing, just go straight to installFortify
+
+    // Reset migrations
+    echo "Resetting all migrations...\n";
+    Artisan::call('migrate:reset');
+    echo "Migrations have been reset.\n";
+
+    // **Run migrate after reset** to reapply all migrations
+    echo "Running all pending migrations...\n";
+    Artisan::call('migrate');
+    echo "All migrations have been successfully reapplied.\n";
+
+    // Proceed with Fortify installation after ensuring migrations are clean
     installFortify();
+} elseif (strtoupper($response) === 'N') {
+    echo "Skipping Fortify-related migration reset. Proceeding with Fortify installation (if not already installed)....\n";
+    // Even if not resetting, still try to install Fortify if it's missing
+    installFortify();
+} else {
+    echo "Invalid response. Exiting installation script.\n";
+    exit(1);
 }
 
 // Always proceed to publish Fortify assets, views, and config
@@ -167,4 +175,3 @@ try {
 
 // Final message
 echo "Fortify installation process completed.\n";
-
