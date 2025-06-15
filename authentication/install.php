@@ -199,5 +199,7 @@ try {
     echo "Error publishing Fortify assets: " . $e->getMessage() . "\n";
 }
 
+
 // Final message
 echo "Fortify installation process completed.\n";
+
