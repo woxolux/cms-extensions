@@ -102,15 +102,19 @@ if ($status !== 0) {
     echo "Fortify is already installed.\n";
 }
 
-// Run 'composer install' to ensure all dependencies are correctly installed and autoloader is fully consistent
-echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
-exec('composer install', $composerOutput, $status);
+// **Skip composer install if Fortify is installed and migrations were not reset**
+if ($response !== 'N') {
+    echo "Running 'composer install' to ensure all dependencies are met and autoloader is up-to-date...\n";
+    exec('composer install', $composerOutput, $status);
 
-if ($status !== 0) {
-    echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
-    echo implode("\n", $composerOutput) . "\n";
+    if ($status !== 0) {
+        echo "Warning: 'composer install' failed. Some dependencies might be missing or autoloader issues persist.\n";
+        echo implode("\n", $composerOutput) . "\n";
+    } else {
+        echo "Composer dependencies and autoloader verified.\n";
+    }
 } else {
-    echo "Composer dependencies and autoloader verified.\n";
+    echo "Skipping Composer install. Dependencies and autoloader are up-to-date.\n";
 }
 
 // Clear and optimize Laravel's internal service cache and config cache
