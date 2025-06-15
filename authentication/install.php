@@ -122,6 +122,15 @@ if (!$fortifyMigrationExists) {
             echo "\033[34m'extensions' folder does not exist.\033[0m\n";
         }
     }
+    if ($response === 'E') {
+        $extensionFolder = storage_path('private/extensions');
+
+        // Check if the folder exists, then delete it
+        if (File::exists($extensionFolder)) {
+            File::deleteDirectory($extensionFolder);
+            echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
+        }
+    }
 }
 
 // **Publishing Fortify assets, views, and config only if Fortify is installed**
