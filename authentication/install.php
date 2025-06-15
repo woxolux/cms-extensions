@@ -42,7 +42,8 @@ echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
 if (!empty($missingMigrations)) {
     echo "Required Fortify migrations are missing. Proceeding with Fortify installation...\n";
 } else {
-    echo "Fortify migrations have already been applied.\n";
+    echo "Fortify migrations have already been applied. Skipping reset...\n";
+    exit(0);  // Exit script since no reset is necessary
 }
 
 // Prompt user to reset Fortify migrations if required
