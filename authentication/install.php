@@ -29,13 +29,7 @@ foreach ($files as $file) {
 // Check if Fortify migration already exists
 $fortifyMigrationExists = !empty($existingMigrations);
 
-// **Publishing Fortify assets, views, and config**
-echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
-
-// **Check if Fortify is already installed via Composer**
+// **Check if Fortify is installed via Composer**
 echo "Checking if Fortify is installed via Composer...\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
@@ -71,7 +65,7 @@ if (!$fortifyMigrationExists) {
         echo "Fortify installation command executed successfully.\n";
     }
 } else {
-    echo "Migration file already exists.\n Do you want reset and reset migration?";
+    echo "Migration file already exists.\n Do you want to reset and reapply migrations?";
 }
 
 // Ask user if they want to reset the database (clear all data)
@@ -88,6 +82,14 @@ if ($response === 'Y') {
 } else {
     echo "Invalid response. Exiting...\n";
     exit(1);
+}
+
+// **Publishing Fortify assets, views, and config only if Fortify is installed**
+if ($fortifyInstalled) {
+    echo "Publishing Fortify assets, views, and config...\n";
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+    Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
 }
 
 // Clear and optimize Laravel service cache and config cache
