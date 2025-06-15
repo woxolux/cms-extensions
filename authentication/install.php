@@ -23,12 +23,13 @@ $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) 
     // Check if any migration filename contains the required suffix
     $isMissing = true;
     foreach ($appliedMigrations as $migration) {
-        // Extract the migration name by removing the timestamp (first part of the filename)
-        $migrationName = substr($migration, 17); // Remove the timestamp part (assuming it's 17 characters long)
-        
+        // Get the migration name by removing the timestamp (first 17 characters)
+        $migrationName = substr($migration, 17); // This will remove the timestamp, leaving the migration name
+
         // Log each comparison for debug
         echo "Comparing migration: $migrationName with suffix: $suffix\n";
 
+        // Compare the migration name to the required suffix
         if (strpos($migrationName, $suffix) !== false) {
             $isMissing = false;  // Fortify migration found, not missing
             break;
