@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
@@ -18,8 +19,13 @@ $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 // Log the applied migrations for further debug
 echo "Applied migrations: " . implode(', ', $appliedMigrations) . "\n";
 
-// Since there are no migrations to check now, we can proceed without filtering the missing migrations
-echo "No specific Fortify migrations to check.\n";
+// Check if 'two_factor_secret' column already exists in the 'users' table
+echo "Checking if 'two_factor_secret' column exists in 'users' table...\n";
+if (Schema::hasColumn('users', 'two_factor_secret')) {
+    echo "'two_factor_secret' column already exists. Skipping migration for adding it.\n";
+} else {
+    echo "'two_factor_secret' column does not exist. It will be added during migration.\n";
+}
 
 // Prompt user to reset Fortify migrations if required
 echo "Do you want to reset and apply Fortify migrations? (Y/N): ";
@@ -43,9 +49,15 @@ if ($response === 'Y') {
     Artisan::call('migrate:reset');
     echo "Migrations have been reset.\n";
 
-    // Run migrations again
+    // Run migrations again, ensuring 'two_factor_secret' column is not added twice
     echo "Running migrations...\n";
-    Artisan::call('migrate');
+    Artisan::call('migrate', [], $exitCode);
+    
+    if ($exitCode !== 0) {
+        echo "Error occurred while running migrations.\n";
+        exit(1);
+    }
+
     echo "Migrations have been successfully reapplied.\n";
 
 } elseif ($response === 'N') {
