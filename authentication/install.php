@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 echo "Running Fortify installation...\n";
 
@@ -15,40 +14,24 @@ $fortifyMigrationSuffixes = [
 // Get a list of all applied migrations from the database
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
-// Debug: Print all migration filenames from the database
-echo "Applied migrations filenames:\n";
-foreach ($appliedMigrations as $migration) {
-    echo " - $migration\n";
-}
-
-echo "Checking for missing Fortify migrations...\n";
-
 // Check if all required Fortify migrations (based on suffixes) are already applied
 $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) use ($appliedMigrations) {
     $isMissing = true;
-    echo "\nChecking for suffix: '$suffix'\n";
     foreach ($appliedMigrations as $migration) {
-        echo "Processing migration filename: $migration\n";
-
         // Extract filename from full path
         $filename = basename($migration);
-        echo "Extracted filename: $filename\n";
 
-        // Remove timestamp prefix (assumed to be first 17 characters: e.g., '2025_06_15_004225_')
+        // Remove timestamp prefix (first 17 characters: e.g., '2025_06_15_004225_')
         $migrationName = substr($filename, 17);
-        echo "After removing timestamp: $migrationName\n";
 
         // Remove the '.php' extension
         $migrationName = str_replace('.php', '', $migrationName);
-        echo "After removing extension: $migrationName\n";
 
         // Optional: trim leading underscores if present
         $migrationName = ltrim($migrationName, '_');
-        echo "Final migration name for comparison: $migrationName\n";
 
         // Check if the migration name contains the suffix
         if (strpos($migrationName, $suffix) !== false) {
-            echo "Match found for suffix '$suffix' in migration '$migration'\n";
             $isMissing = false;
             break;
         }
@@ -56,19 +39,11 @@ $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) 
     return $isMissing;
 });
 
-// Debug: Print missing migrations
-echo "\nMissing Fortify migrations:\n";
-if (empty($missingMigrations)) {
-    echo "None. All required migrations are already applied.\n";
-} else {
-    echo implode(', ', $missingMigrations) . "\n";
-}
-
-// Proceed based on missing migrations
+// If migrations are missing, proceed to installation
 if (!empty($missingMigrations)) {
-    echo "\nRequired Fortify migrations are missing. Proceeding with installation...\n";
+    echo "Required Fortify migrations are missing. Proceeding with installation...\n";
 } else {
-    echo "\nFortify migrations are already applied.\n";
+    echo "Fortify migrations are already applied.\n";
 }
 
 // Prompt user for reset
