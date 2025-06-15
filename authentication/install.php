@@ -102,16 +102,8 @@ if (!$fortifyMigrationExists) {
             break; // Exit the loop if user chooses not to reset
         } elseif ($response === 'E') {
             // If user chooses to exit, delete the extensions folder and exit
-            echo "\033[34mExiting and deleting 'storage/private/extensions' folder...\033[0m\n";
-            $extensionFolder = storage_path('private/extensions');
-
-            // Check if the folder exists, then delete it
-            if (File::exists($extensionFolder)) {
-                File::deleteDirectory($extensionFolder);
-                echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
-            } else {
-                echo "\033[34m'extensions' folder does not exist.\033[0m\n";
-            }
+            echo "\033[34mExit\033[0m\n";
+            break; // Exit the loop if user chooses not to reset
 
             // Exit the script
             exit(0);
@@ -122,7 +114,7 @@ if (!$fortifyMigrationExists) {
     }
 
     // **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
-    if ($response === 'N') {
+    if ($response === 'N' or 'E') {
         $extensionFolder = storage_path('private/extensions');
 
         // Check if the folder exists, then delete it
