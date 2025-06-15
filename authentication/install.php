@@ -9,7 +9,7 @@ echo "Running Fortify installation...\n";
 
 // Define the suffixes for the Fortify-related migrations that we need to check
 $fortifyMigrationSuffixes = [
-    'add_two_factor_columns_to_users_table', // Fortify-specific migration (without timestamp prefix)
+    'add_two_factor_columns_to_users_table', // Fortify-specific migration
 ];
 
 // Get a list of all applied migrations from the database
@@ -29,7 +29,7 @@ $missingMigrations = array_filter($fortifyMigrationSuffixes, function ($suffix) 
         // Log each comparison for debug
         echo "Comparing migration: $migrationName with suffix: $suffix\n";
 
-        // Compare the migration name to the required suffix
+        // Compare the migration name to the required suffix (after the timestamp)
         if (strpos($migrationName, $suffix) !== false) {
             $isMissing = false;  // Fortify migration found, not missing
             break;
