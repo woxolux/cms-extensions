@@ -36,7 +36,6 @@ exec('composer show laravel/fortify', $composerOutput, $status);
 
 $fortifyInstalled = $status === 0;
 
-// Install Fortify if it's not installed
 if (!$fortifyInstalled) {
     echo "Fortify is not installed. Installing Fortify...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
@@ -48,24 +47,25 @@ if (!$fortifyInstalled) {
     } else {
         echo "Fortify installed successfully.\n";
     }
-} else {
-    echo "Fortify is already installed (skipping Composer install).\n";
 }
 
-// **Skip fortify:install if migration file already exists**
+// **If migration file already exists, skip fortify:install**
 if ($fortifyMigrationExists) {
     echo "Skipping fortify:install. Migration file already exists.\n";
 } else {
-    echo "Running fortify:install...\n";
-    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
-    exec($fortifyInstallCommand, $execOutput, $execStatus);
+    // **Run fortify:install only if migration file doesn't exist**
+    if ($fortifyInstalled) {
+        echo "Running fortify:install...\n";
+        $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+        exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-    if ($execStatus !== 0) {
-        Log::error("Error running fortify:install: " . implode("\n", $execOutput));
-        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
-        exit(1);
-    } else {
-        echo "Fortify installation command executed successfully.\n";
+        if ($execStatus !== 0) {
+            Log::error("Error running fortify:install: " . implode("\n", $execOutput));
+            echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
+            exit(1);
+        } else {
+            echo "Fortify installation command executed successfully.\n";
+        }
     }
 }
 
