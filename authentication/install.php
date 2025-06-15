@@ -97,7 +97,8 @@ if (!$fortifyMigrationExists) {
             echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
             break; // Exit the loop after successful action
         } elseif ($response === 'N') {
-            echo "\033[34mSkipping database reset and migrations.\033[0m\n";
+            // If user decides not to reset the database, skip the reset but delete the folder
+            echo "\033[34mSkipping database reset and migrations...\033[0m\n";
             break; // Exit the loop if user chooses not to reset
         } elseif ($response === 'E') {
             // If user chooses to exit, delete the extensions folder and exit
@@ -115,8 +116,21 @@ if (!$fortifyMigrationExists) {
             // Exit the script
             exit(0);
         } else {
-           echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
+            echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
             // No exit, just loop back to ask again
+        }
+    }
+
+    // **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
+    if ($response === 'N') {
+        $extensionFolder = storage_path('private/extensions');
+
+        // Check if the folder exists, then delete it
+        if (File::exists($extensionFolder)) {
+            File::deleteDirectory($extensionFolder);
+            echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
+        } else {
+            echo "\033[34m'extensions' folder does not exist.\033[0m\n";
         }
     }
 }
