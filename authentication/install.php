@@ -29,14 +29,22 @@ foreach ($files as $file) {
 // Check if Fortify migration already exists
 $fortifyMigrationExists = !empty($existingMigrations);
 
-// **Check if Fortify is installed via Composer**
+// **Publishing Fortify assets, views, and config**
+echo "Publishing Fortify assets, views, and config...\n";
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
+Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
+
+// **Check if Fortify is already installed via Composer**
 echo "Checking if Fortify is installed via Composer...\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
 
 $fortifyInstalled = $status === 0;
 
-if (!$fortifyInstalled) {
+if ($fortifyInstalled) {
+    echo "Fortify is already installed (skipping fortify:install).\n";
+} else {
     echo "Fortify is not installed. Installing Fortify...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
     
@@ -49,24 +57,21 @@ if (!$fortifyInstalled) {
     }
 }
 
-// **If migration file already exists, skip fortify:install**
-if ($fortifyMigrationExists) {
-    echo "Skipping fortify:install. Migration file already exists.\n";
-} else {
-    // **Run fortify:install only if migration file doesn't exist**
-    if ($fortifyInstalled) {
-        echo "Running fortify:install...\n";
-        $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
-        exec($fortifyInstallCommand, $execOutput, $execStatus);
+// **Skip fortify:install if migration file already exists**
+if (!$fortifyMigrationExists) {
+    echo "Running fortify:install...\n";
+    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+    exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-        if ($execStatus !== 0) {
-            Log::error("Error running fortify:install: " . implode("\n", $execOutput));
-            echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
-            exit(1);
-        } else {
-            echo "Fortify installation command executed successfully.\n";
-        }
+    if ($execStatus !== 0) {
+        Log::error("Error running fortify:install: " . implode("\n", $execOutput));
+        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
+        exit(1);
+    } else {
+        echo "Fortify installation command executed successfully.\n";
     }
+} else {
+    echo "Skipping fortify:install. Migration file already exists.\n";
 }
 
 // Ask user if they want to reset the database (clear all data)
