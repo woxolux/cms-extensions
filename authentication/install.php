@@ -106,6 +106,9 @@ function installFortify()
 // Define the suffix for the main Fortify migration
 $fortifyMigrationSuffix = '_create_two_factor_authentication_tables';
 
+// IMPORTANT: Reconnect to the database to ensure the latest state is read.
+DB::reconnect();
+
 // Get a list of all applied migrations
 $appliedMigrations = DB::table('migrations')->pluck('migration')->toArray();
 
