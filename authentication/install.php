@@ -1,8 +1,3 @@
-I understand the `extensions` folder is still not being deleted, and you're consistently seeing the message "'extensions' folder does not exist." This strongly suggests that the `storage_path('private/extensions')` helper is *not* resolving to the location where you believe the folder is, or the folder genuinely isn't present at that specific path when the script executes.
-
-To help diagnose this, I've added a line to your script that will **print the exact absolute path** Laravel is looking for. Please run this updated script, and when you type `E`, observe the output for the "Attempting to delete:" line. Then, manually check if a folder actually exists at that exact path on your file system.
-
-```php
 <?php
 
 use Illuminate\Support\Facades\Artisan;
@@ -146,4 +141,3 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 // Confirming that caches are cleared and optimized
 echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
-```
