@@ -85,19 +85,24 @@ if (!$fortifyMigrationExists) {
     // Color Y = Yes in green, N = No in red
     echo "\033[32m(Y = Yes)\033[0m / \033[31m(N = No)\033[0m: ";
 
-    $response = strtoupper(trim(fgets(STDIN)));
+    // Start a loop to keep asking until a valid response is given
+    while (true) {
+        $response = strtoupper(trim(fgets(STDIN)));  // Get and normalize the user input
 
-    // Handle the user's response with color-coded output
-    if ($response === 'Y') {
-        // If user agrees to reset database, drop all tables and reapply migrations
-        echo "\033[34mRunning migrate:fresh to drop all tables and reapply migrations...\033[0m\n";
-        Artisan::call('migrate:fresh');
-        echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
-    } elseif ($response === 'N') {
-        echo "\033[34mSkipping database reset and migrations.\033[0m\n";
-    } else {
-        echo "\033[34mInvalid response. Exiting...\033[0m\n";
-        exit(1);
+        // Check if response is valid
+        if ($response === 'Y') {
+            // If user agrees to reset database, drop all tables and reapply migrations
+            echo "\033[34mRunning migrate:fresh to drop all tables and reapply migrations...\033[0m\n";
+            Artisan::call('migrate:fresh');
+            echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
+            break; // Exit the loop after successful action
+        } elseif ($response === 'N') {
+            echo "\033[34mSkipping database reset and migrations.\033[0m\n";
+            break; // Exit the loop if user chooses not to reset
+        } else {
+            echo "\033[34mInvalid response. Please enter 'Y' or 'N'.\033[0m\n";  // Error message for invalid input
+            // No exit, just loop back to ask again
+        }
     }
 }
 
@@ -117,3 +122,4 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 // Confirming that caches are cleared and optimized
 echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
+
