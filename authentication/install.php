@@ -49,8 +49,10 @@ exec('composer show laravel/fortify', $composerOutput, $status);
 
 $fortifyInstalled = $status === 0;
 
+// Condensed Fortify installation status message into one line
+echo $fortifyInstalled ? "Fortify is already installed (skipping fortify:install).\n" : "Fortify is not installed. Installing Fortify...\n";
+
 if (!$fortifyInstalled) {
-    echo "Fortify is not installed. Installing Fortify...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
     
     if ($status !== 0) {
@@ -60,8 +62,6 @@ if (!$fortifyInstalled) {
     } else {
         echo "Fortify installed successfully.\n";
     }
-} else {
-    echo "Fortify is already installed.\n";
 }
 
 // **Skip fortify:install if migration file already exists**
