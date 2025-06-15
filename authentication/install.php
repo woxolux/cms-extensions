@@ -119,33 +119,21 @@ foreach ($appliedMigrations as $migration) {
         $isFortifyMigrationApplied = true;
         break;
     }
-    // No longer checking for other general required migrations here, focusing on Fortify's
 }
 
 // Adjusted logic for migration check and prompts
 if ($isFortifyMigrationApplied) {
     echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') has already been applied.\n";
-    echo "Do you want to reset and re-install Fortify's migrations? (Y/N): ";
-    $response = trim(fgets(STDIN));
-    if (strtoupper($response) === 'Y') {
-        echo "Proceeding with Fortify migration reset and re-installation...\n";
-        deleteFortifyMigrations();
-        Artisan::call('migrate:reset');
-        echo "Migrations have been reset.\n";
-        Artisan::call('migrate');
-        echo "Migrations have been successfully reapplied.\n";
-        installFortify();
-    } elseif (strtoupper($response) === 'N' || $response === '') { // Treat empty response as 'N'
-        echo "Skipping Fortify migration reset. Fortify assets and config will be published if needed.\n"; // Updated message
-        // Do not call installFortify() here again if 'N' and it's already installed.
-        // It will be called in the final publishing step anyway.
-    } else {
-        echo "Invalid response. Exiting installation script.\n";
-        exit(1);
-    }
+
+    // Since interactive input is not consistently available, skip asking and proceed.
+    echo "Since this script is running non-interactively, skipping migration reset prompt and proceeding with installation process (if any assets/configs need publishing).\n";
+
+    // We still call installFortify() here to ensure assets and config are published on subsequent runs,
+    // as fortify:install is idempotent and will simply confirm scaffolding is done.
+    installFortify();
 } else {
     // If the Fortify migration is not applied, proceed to install it without asking for reset first.
-    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') is missing. Proceeding with Fortify installation.\n"; // Updated message
+    echo "Fortify-specific migration ('{$fortifyMigrationSuffix}') is missing. Proceeding with Fortify installation.\n";
     installFortify();
 }
 
