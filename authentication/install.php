@@ -98,13 +98,6 @@ if ($response === 'Y') {
     exit(1);
 }
 
-// **If Fortify installation was already successful and no migration reset, just run migrate**
-if ($fortifyInstalled && $fortifyMigrationExists) {
-    echo "Fortify installation was successful. Running migrations...\n";
-    Artisan::call('migrate');
-    echo "Migrations have been successfully reapplied.\n";
-}
-
 // Clear and optimize Laravel service cache and config cache
 echo "Clearing and optimizing Laravel service cache...\n";
 Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
