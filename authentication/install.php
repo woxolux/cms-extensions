@@ -36,6 +36,9 @@ $missingMigrations = array_diff($fortifyMigrationSuffixes, array_map(function ($
     return null;
 }, $existingMigrations));
 
+// Initialize $response with a default value to avoid undefined errors
+$response = null;  // Default value
+
 // **Conditionally show missing migrations message only if migrations are missing**
 if (!empty($missingMigrations)) {
     echo "Missing Fortify migrations: " . implode(', ', $missingMigrations) . "\n";
@@ -87,7 +90,9 @@ echo "Checking if Fortify is installed via Composer...\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
 
-if ($status !== 0) {
+$fortifyInstalled = $status === 0;
+
+if (!$fortifyInstalled) {
     echo "Fortify is not installed. Installing Fortify via Composer...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
 
