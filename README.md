@@ -1,2 +1,2 @@
 To install extension:
-php artisan cms-extension:install ExtensionName
+php artisan extension:install ExtensionName
