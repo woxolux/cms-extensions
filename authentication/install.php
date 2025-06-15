@@ -94,8 +94,51 @@ if ($fortifyInstalled) {
 
 // Clear and optimize Laravel service cache and config cache
 echo "Clearing and optimizing Laravel service cache...\n";
-Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
-Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
-Artisan::call('cache:clear');    // Clear application cache
-Artisan::call('view:clear');     // Clear view cache
+
+// Clearing config cache
+echo "Clearing config cache...\n";
+$configClearOutput = Artisan::call('config:clear');   // Explicitly clear config cache
+if ($configClearOutput === 0) {
+    echo "Config cache cleared successfully.\n";
+} else {
+    echo "Error clearing config cache.\n";
+}
+
+// Clearing route cache
+echo "Clearing route cache...\n";
+$routeClearOutput = Artisan::call('route:clear');     // Clears route cache
+if ($routeClearOutput === 0) {
+    echo "Route cache cleared successfully.\n";
+} else {
+    echo "Error clearing route cache.\n";
+}
+
+// Clearing view cache
+echo "Clearing view cache...\n";
+$viewClearOutput = Artisan::call('view:clear');       // Clears view cache
+if ($viewClearOutput === 0) {
+    echo "View cache cleared successfully.\n";
+} else {
+    echo "Error clearing view cache.\n";
+}
+
+// Clearing application cache
+echo "Clearing application cache...\n";
+$cacheClearOutput = Artisan::call('cache:clear');      // Clears application cache
+if ($cacheClearOutput === 0) {
+    echo "Application cache cleared successfully.\n";
+} else {
+    echo "Error clearing application cache.\n";
+}
+
+// Clearing compiled services and routes
+echo "Clearing compiled services and routes...\n";
+$optimizeClearOutput = Artisan::call('optimize:clear');  // Clears config, route, view caches, and compiled services
+if ($optimizeClearOutput === 0) {
+    echo "Compiled services and routes cleared successfully.\n";
+} else {
+    echo "Error clearing compiled services and routes.\n";
+}
+
+// Confirming that caches are cleared and optimized
 echo "Laravel caches cleared and optimized.\n";
