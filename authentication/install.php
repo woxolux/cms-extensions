@@ -101,6 +101,7 @@ if ($fortifyInstalled) {
 }
 
 // Clear and optimize Laravel service cache and config cache
+echo "\033[34mClearing and optimizing Laravel caches...\033[0m\n"; // Added message before clearing
 Artisan::call('optimize:clear'); // Clears config, route, view caches and compiled services
 Artisan::call('config:clear');   // Explicitly clear config cache again for good measure
 Artisan::call('cache:clear');    // Clear application cache
