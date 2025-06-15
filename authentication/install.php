@@ -29,22 +29,15 @@ foreach ($files as $file) {
 // Check if Fortify migration already exists
 $fortifyMigrationExists = !empty($existingMigrations);
 
-// **Publishing Fortify assets, views, and config**
-echo "Publishing Fortify assets, views, and config...\n";
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'config']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'views']);
-Artisan::call('vendor:publish', ['--provider' => 'Laravel\\Fortify\\FortifyServiceProvider', '--tag' => 'assets']);
-
-// **Check if Fortify is already installed via Composer**
+// **Check if Fortify is installed via Composer**
 echo "Checking if Fortify is installed via Composer...\n";
 $composerOutput = [];
 exec('composer show laravel/fortify', $composerOutput, $status);
 
 $fortifyInstalled = $status === 0;
 
-if ($fortifyInstalled) {
-    echo "Fortify is already installed (skipping fortify:install).\n";
-} else {
+// Install Fortify if it's not installed
+if (!$fortifyInstalled) {
     echo "Fortify is not installed. Installing Fortify...\n";
     exec('composer require laravel/fortify', $composerOutput, $status);
     
@@ -55,10 +48,14 @@ if ($fortifyInstalled) {
     } else {
         echo "Fortify installed successfully.\n";
     }
+} else {
+    echo "Fortify is already installed (skipping Composer install).\n";
 }
 
 // **Skip fortify:install if migration file already exists**
-if (!$fortifyMigrationExists) {
+if ($fortifyMigrationExists) {
+    echo "Skipping fortify:install. Migration file already exists.\n";
+} else {
     echo "Running fortify:install...\n";
     $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
     exec($fortifyInstallCommand, $execOutput, $execStatus);
@@ -70,8 +67,6 @@ if (!$fortifyMigrationExists) {
     } else {
         echo "Fortify installation command executed successfully.\n";
     }
-} else {
-    echo "Skipping fortify:install. Migration file already exists.\n";
 }
 
 // Ask user if they want to reset the database (clear all data)
