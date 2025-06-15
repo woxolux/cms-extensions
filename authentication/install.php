@@ -97,44 +97,27 @@ if (!$fortifyMigrationExists) {
             echo "\033[34mDatabase has been reset and migrations reapplied.\033[0m\n";
             break; // Exit the loop after successful action
         } elseif ($response === 'N') {
-            // If user decides not to reset the database, skip the reset but delete the folder
-            echo "\033[34mSkipping database reset and migrations...\033[0m\n";
+            echo "\033[34mSkipping database reset and migrations.\033[0m\n";
             break; // Exit the loop if user chooses not to reset
         } elseif ($response === 'E') {
-            // If user chooses to exit, delete the extensions folder and exit with a cancel message
+            // If user chooses to exit, delete the extensions folder and exit
             echo "\033[34mExiting and deleting 'storage/private/extensions' folder...\033[0m\n";
-            
-            // Debugging: Output the actual folder path
             $extensionFolder = storage_path('private/extensions');
-            echo "\033[33mDebug: Checking path: $extensionFolder\033[0m\n";  // Print the path
 
             // Check if the folder exists, then delete it
-            if (File::exists($extensionFolder) && File::isDirectory($extensionFolder)) {
+            if (File::exists($extensionFolder)) {
                 File::deleteDirectory($extensionFolder);
                 echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
             } else {
-                echo "\033[34m'extensions' folder does not exist or is not a directory.\033[0m\n";
+                echo "\033[34m'extensions' folder does not exist.\033[0m\n";
             }
 
-            echo "\033[34mInstallation canceled.\033[0m\n"; // Canceled message
-            exit(0);  // Exit immediately after deleting the folder
+            // Exit the script
+            exit(0);
         } else {
-            echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
+           echo "\033[34mInvalid response. Please enter '\033[32mY\033[34m' or '\033[31mN\033[34m' or '\033[33mE\033[34m'\033[0m: ";  // Error message for invalid input
             // No exit, just loop back to ask again
         }
-    }
-}
-
-// **Delete the 'extensions' folder when 'N' is selected (skipping reset)**
-if ($response === 'N') {
-    $extensionFolder = storage_path('private/extensions');
-
-    // Check if the folder exists, then delete it
-    if (File::exists($extensionFolder) && File::isDirectory($extensionFolder)) {
-        File::deleteDirectory($extensionFolder);
-        echo "\033[34m'extensions' folder deleted successfully.\033[0m\n";
-    } else {
-        echo "\033[34m'extensions' folder does not exist or is not a directory.\033[0m\n";
     }
 }
 
@@ -153,4 +136,4 @@ Artisan::call('config:clear');   // Explicitly clear config cache again for good
 Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 // Confirming that caches are cleared and optimized
-echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m
+echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
