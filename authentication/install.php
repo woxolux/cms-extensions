@@ -127,16 +127,21 @@ Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 echo "Laravel caches cleared and optimized.\n";
 
-// Run fortify:install in a separate PHP process
-echo "Running fortify:install in a separate Artisan process...\n";
-$fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
-exec($fortifyInstallCommand, $execOutput, $execStatus);
+// **Critical change:** Skip fortify:install if migrations are not being reset
+if ($response !== 'N') {
+    echo "Running fortify:install in a separate Artisan process...\n";
+    $fortifyInstallCommand = PHP_BINARY . ' artisan fortify:install --ansi';
+    exec($fortifyInstallCommand, $execOutput, $execStatus);
 
-if ($execStatus !== 0) {
-    Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
-    echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
-    exit(1);
+    if ($execStatus !== 0) {
+        Log::error("Error running fortify:install in separate process: " . implode("\n", $execOutput));
+        echo "Error running fortify:install: " . implode("\n", $execOutput) . "\n";
+        exit(1);
+    } else {
+        echo "Fortify installation command executed successfully in separate process.\n";
+        echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
+    }
 } else {
-    echo "Fortify installation command executed successfully in separate process.\n";
-    echo implode("\n", $execOutput) . "\n"; // Output the result of the Fortify install command
+    echo "Skipping fortify:install command.\n";
 }
+
