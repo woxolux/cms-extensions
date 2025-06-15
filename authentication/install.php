@@ -103,7 +103,10 @@ if (!$fortifyMigrationExists) {
         } elseif ($response === 'E') {
             // If user chooses to exit, delete the extensions folder and exit with a cancel message
             echo "\033[34mExiting and deleting 'storage/private/extensions' folder...\033[0m\n";
+            
+            // Debugging: Output the actual folder path
             $extensionFolder = storage_path('private/extensions');
+            echo "\033[33mDebug: Checking path: $extensionFolder\033[0m\n";  // Print the path
 
             // Check if the folder exists, then delete it
             if (File::exists($extensionFolder) && File::isDirectory($extensionFolder)) {
@@ -150,4 +153,4 @@ Artisan::call('config:clear');   // Explicitly clear config cache again for good
 Artisan::call('cache:clear');    // Clear application cache
 Artisan::call('view:clear');     // Clear view cache
 // Confirming that caches are cleared and optimized
-echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m\n";
+echo "\033[34mLaravel cache clearing and optimization completed successfully.\033[0m
